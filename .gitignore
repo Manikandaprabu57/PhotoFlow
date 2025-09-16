@@ -1,0 +1,42 @@
+# Node.js dependencies
+node_modules/
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Python cache
+__pycache__/
+*.pyc
+
+# VS Code settings
+.vscode/
+
+# Batch and PowerShell scripts
+*.bat
+*.ps1
+
+# Data and database files
+data/db/
+
+# Event exports and reports
+events/*/exports/
+events/*/processing_report.json
+
+# Ignore images and photos (optional, comment out if you want to keep these tracked)
+# events/*/photos/
+# events/*/selfies/
+# events/*/matched/
+
+# Ignore zip files
+*.zip
+
+# Environment files
+.env
+
+# Misc
+*.swp
+*.swo

@@ -1,0 +1,105 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #892727 url('https://wallpaperaccess.com/full/1209667.jpg');
+  background-blend-mode: multiply;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+.container {
+  position: relative;
+  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.4);
+}
+.login-box {
+  background: #fff8f2;
+  border-radius: 20px;
+  padding: 40px 30px;
+  width: 340px;
+  text-align: center;
+}
+.login-box h2 {
+  color: #1f2f59;
+  margin-bottom: 25px;
+}
+.input-group {
+  position: relative;
+  margin: 15px 0;
+}
+.input-group input {
+  width: 100%;
+  padding: 12px 12px 12px 40px;
+  border: 1px solid #ccc;
+  border-radius: 25px;
+  font-size: 15px;
+}
+.input-group i {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  color: #555;
+}
+.login-btn {
+  background-color: #e4462f;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 30px;
+  width: 100%;
+  margin: 20px 0;
+  font-size: 16px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+.login-btn:hover {
+  background-color: #c53d29;
+}
+.register-link {
+  font-size: 14px;
+  color: #333;
+}
+.register-link a {
+  text-decoration: none;
+  color: #1f2f59;
+  font-weight: 600;
+}
+.options {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  margin-top: 10px;
+  margin-bottom: 15px;
+}
+.options a {
+  text-decoration: none;
+  color: #e4462f;
+}
+/* OTP group layout fix */
+.otp-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.otp-group input {
+  flex: 1;
+}
+.get-otp-btn {
+  padding: 10px 14px;
+  font-size: 14px;
+  background-color: #1f2f59;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.get-otp-btn:hover {
+  background-color: #162443;
+}

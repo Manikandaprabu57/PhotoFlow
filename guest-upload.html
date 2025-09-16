@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Your Selfie</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #818cf8;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --gray: #94a3b8;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .container {
+            background-color: white;
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            width: 100%;
+            max-width: 500px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .header h1 {
+            color: var(--dark);
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+        }
+        .header p {
+            color: var(--gray);
+            font-size: 1rem;
+        }
+        .event-info {
+            background-color: var(--light);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .event-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+        .event-description {
+            color: var(--gray);
+            font-size: 0.875rem;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--dark);
+        }
+        /* Unified padding for all text inputs */
+        .form-group input[type="text"],
+        .form-group input[type="email"] {
+            width: 100%;
+            padding: 12px 14px; /* consistent padding */
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+        .form-group input[type="email"]:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        .form-group input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        .upload-area {
+            border: 2px dashed #d1d5db;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 1rem;
+        }
+        .upload-area:hover {
+            border-color: var(--primary);
+            background-color: #f8fafc;
+        }
+        .upload-area.dragover {
+            border-color: var(--primary);
+            background-color: #eff6ff;
+        }
+        .upload-area.has-files {
+            border-color: var(--success);
+            background-color: #f0fdf4;
+        }
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--gray);
+            margin-bottom: 1rem;
+        }
+        .upload-text {
+            color: var(--gray);
+            margin-bottom: 0.5rem;
+        }
+        .upload-hint {
+            font-size: 0.875rem;
+            color: var(--gray);
+        }
+        .file-preview {
+            display: none;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        .file-preview.show {
+            display: grid;
+        }
+        .preview-item {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            border: 2px solid #e5e7eb;
+        }
+        .preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .remove-file {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background-color: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .submit-btn {
+            width: 100%;
+            padding: 12px 16px; /* consistent button padding */
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-bottom: 1rem;
+        }
+        .submit-btn:hover {
+            background-color: #4338ca;
+        }
+        .submit-btn:disabled {
+            background-color: var(--gray);
+            cursor: not-allowed;
+        }
+        .camera-btn {
+            background-color: var(--success);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 10px 14px; /* consistent button padding */
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .success-message {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+        .success-message.show {
+            display: block;
+        }
+        .success-icon {
+            font-size: 4rem;
+            color: var(--success);
+            margin-bottom: 1rem;
+        }
+        .success-text {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+        }
+        .success-description {
+            color: var(--gray);
+            margin-bottom: 2rem;
+        }
+        .error-message {
+            background-color: #fef2f2;
+            color: var(--danger);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+        .error-message.show {
+            display: block;
+        }
+        @media (max-width: 640px) {
+            .container {
+                padding: 1.5rem;
+                margin: 0.5rem;
+            }
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            .upload-area {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📸 Upload Your Selfie</h1>
+            <p>Help us find your photos from the event!</p>
+            <p id="userGreeting" style="color:#64748b;margin-top:.25rem;display:none"></p>
+        </div>
+
+        <div class="event-info">
+            <div class="event-name" id="eventName">Loading...</div>
+            <div class="event-description">Upload your selfie(s) so we can automatically find and send you all the photos you appear in</div>
+        </div>
+
+        <form id="uploadForm">
+            <div class="error-message" id="errorMessage"></div>
+
+            <div class="form-group" id="nameGroup">
+                <label for="guestName">Your Name</label>
+                <input type="text" id="guestName" placeholder="Enter your name" required>
+            </div>
+
+            <div class="form-group" id="emailGroup">
+                <label for="email">Your Email Address</label>
+                <input type="email" id="email" placeholder="Enter your email" required>
+            </div>
+
+            <div class="form-group">
+                <label>Upload Your Selfie(s)</label>
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">
+                        <i class="fas fa-camera"></i>
+                    </div>
+                    <div class="upload-text">Tap to take a selfie or upload from gallery</div>
+                    <div class="upload-hint">You can upload multiple selfies for better matching</div>
+                    <button type="button" class="camera-btn" id="cameraBtn">
+                        <i class="fas fa-camera"></i>
+                        Take Selfie
+                    </button>
+                </div>
+                <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
+                <input type="file" id="cameraInput" accept="image/*" capture="user" style="display: none;">
+                
+                <div class="file-preview" id="filePreview"></div>
+            </div>
+
+            <!-- Live Camera Section -->
+            <div id="cameraSection" style="display:none;margin: 1rem 0; background:#f8fafc; border:1px solid #e5e7eb; border-radius:.5rem; padding:1rem;">
+                <div style="display:grid;gap:10px;justify-items:center">
+                    <video id="liveVideo" autoplay playsinline style="width:100%;max-width:420px;border-radius:8px;background:#000"></video>
+                    <canvas id="liveCanvas" style="display:none"></canvas>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+                        <button type="button" class="camera-btn" id="startLiveBtn"><i class="fas fa-video"></i> Start Camera</button>
+                        <button type="button" class="camera-btn" id="captureLiveBtn" style="background:#f59e0b"><i class="fas fa-dot-circle"></i> Capture</button>
+                        <button type="button" class="camera-btn" id="addCaptureBtn" style="background:#3b82f6"><i class="fas fa-plus"></i> Add to Uploads</button>
+                        <button type="button" class="camera-btn" id="stopLiveBtn" style="background:#ef4444"><i class="fas fa-stop"></i> Stop</button>
+                    </div>
+                    <div id="cameraStatus" style="color:#64748b"></div>
+                </div>
+            </div>
+
+            <button type="submit" class="submit-btn" id="submitBtn" disabled>
+                <i class="fas fa-upload"></i>
+                Upload Selfies
+            </button>
+        </form>
+
+        <div class="success-message" id="successMessage">
+            <div class="success-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="success-text">Selfies Uploaded Successfully!</div>
+            <div class="success-description">
+                We'll process your photos and send you a personalized album via email once ready.
+                This usually takes a few minutes to a few hours depending on the event size.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedFiles = [];
+        // Determine event name: prefer query (?event=NAME), fallback to path
+        const params = new URLSearchParams(location.search);
+        const eventFromQuery = params.get('event');
+        const pathParts = location.pathname.split('/').filter(Boolean);
+        // Try pattern .../events/<event>/guest-upload.html
+        const idxEvents = pathParts.indexOf('events');
+        const eventFromPath = idxEvents !== -1 && pathParts[idxEvents + 1] ? pathParts[idxEvents + 1] : null;
+        const eventName = (eventFromQuery || eventFromPath || '').trim();
+        let mediaStream = null; // for live camera
+        let lastCapturedBlob = null;
+        
+        // Set event name in UI or show error if missing
+        if (eventName) {
+            document.getElementById('eventName').textContent = eventName.replace(/_/g, ' ');
+        } else {
+            document.getElementById('eventName').textContent = 'Event not found';
+        }
+
+        // Prefill email only from QR (?email=), keep it editable. Do NOT use localStorage here.
+        const qrEmail = params.get('email');
+        const emailEl = document.getElementById('email');
+        if (qrEmail) {
+            emailEl.value = qrEmail;
+        }
+
+        // DOM elements
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const cameraInput = document.getElementById('cameraInput');
+        const cameraBtn = document.getElementById('cameraBtn');
+        const nameEl = document.getElementById('guestName');
+        const cameraSection = document.getElementById('cameraSection');
+        const liveVideo = document.getElementById('liveVideo');
+        const liveCanvas = document.getElementById('liveCanvas');
+        const startLiveBtn = document.getElementById('startLiveBtn');
+        const captureLiveBtn = document.getElementById('captureLiveBtn');
+        const addCaptureBtn = document.getElementById('addCaptureBtn');
+        const stopLiveBtn = document.getElementById('stopLiveBtn');
+        const cameraStatus = document.getElementById('cameraStatus');
+        const filePreview = document.getElementById('filePreview');
+        const submitBtn = document.getElementById('submitBtn');
+        const uploadForm = document.getElementById('uploadForm');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+
+        // Upload area click handler
+        uploadArea.addEventListener('click', (e) => {
+            if (e.target !== cameraBtn && !cameraBtn.contains(e.target)) {
+                fileInput.click();
+            }
+        });
+
+        // Camera button handler
+        cameraBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            cameraSection.style.display = 'block';
+            await startLiveCamera();
+        });
+
+        // File input handlers
+        fileInput.addEventListener('change', handleFileSelect);
+        cameraInput.addEventListener('change', handleFileSelect);
+
+        // Text input handlers
+        emailEl.addEventListener('input', updateUI);
+        nameEl.addEventListener('input', updateUI);
+
+        // Drag and drop handlers
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFileSelect({ target: { files: e.dataTransfer.files } });
+        });
+
+        function handleFileSelect(e) {
+            const files = Array.from(e.target.files);
+            
+            // Validate files
+            const validFiles = files.filter(file => {
+                if (!file.type.startsWith('image/')) {
+                    showError('Please select only image files');
+                    return false;
+                }
+                if (file.size > 10 * 1024 * 1024) { // 10MB limit
+                    showError('File size should be less than 10MB');
+                    return false;
+                }
+                return true;
+            });
+
+            // Add to selected files (avoid duplicates)
+            validFiles.forEach(file => {
+                if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                    selectedFiles.push(file);
+                }
+            });
+
+            updateUI();
+        }
+
+        function updateUI() {
+            // Update upload area
+            if (selectedFiles.length > 0) {
+                uploadArea.classList.add('has-files');
+                uploadArea.querySelector('.upload-text').textContent = 
+                    `${selectedFiles.length} selfie(s) selected`;
+            } else {
+                uploadArea.classList.remove('has-files');
+                uploadArea.querySelector('.upload-text').textContent = 
+                    'Tap to take a selfie or upload from gallery';
+            }
+
+            // Update file preview
+            filePreview.innerHTML = '';
+            selectedFiles.forEach((file, index) => {
+                const previewItem = document.createElement('div');
+                previewItem.className = 'preview-item';
+                
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(file);
+                img.alt = 'Selfie preview';
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-file';
+                removeBtn.innerHTML = '×';
+                removeBtn.onclick = () => removeFile(index);
+                
+                previewItem.appendChild(img);
+                previewItem.appendChild(removeBtn);
+                filePreview.appendChild(previewItem);
+            });
+
+            if (selectedFiles.length > 0) {
+                filePreview.classList.add('show');
+            } else {
+                filePreview.classList.remove('show');
+            }
+
+            // Update submit button: require event + name + email + at least one file
+            const email = emailEl.value.trim();
+            const name = nameEl.value.trim();
+            const hasEvent = !!eventName;
+            submitBtn.disabled = selectedFiles.length === 0 || !email || !name || !hasEvent;
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            updateUI();
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('show');
+            setTimeout(() => {
+                errorMessage.classList.remove('show');
+            }, 5000);
+        }
+
+        function showSuccess() {
+            uploadForm.style.display = 'none';
+            successMessage.classList.add('show');
+        }
+
+        // Form submission
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = emailEl.value.trim();
+            const name = nameEl.value.trim();
+            if (!eventName) {
+                showError('Missing event identifier. Please open the link from the event QR or include ?event=EVENT_NAME');
+                return;
+            }
+            if (!name || !email || selectedFiles.length === 0) {
+                showError('Please provide your name, email and upload at least one selfie');
+                return;
+            }
+
+            // Disable submit button and show loading
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+
+            try {
+                const formData = new FormData();
+                formData.append('email', email);
+                formData.append('name', name);
+                
+                selectedFiles.forEach(file => {
+                    formData.append('selfies', file);
+                });
+
+                const response = await fetch(`/api/upload-selfie/${eventName}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showSuccess();
+                } else {
+                    showError(result.error || 'Upload failed. Please try again.');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-upload"></i> Upload Selfies';
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                showError('Network error. Please check your connection and try again.');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-upload"></i> Upload Selfies';
+            }
+        });
+
+        // Live camera functions
+        async function startLiveCamera() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+                liveVideo.srcObject = mediaStream;
+                cameraStatus.textContent = '';
+            } catch (err) {
+                cameraStatus.textContent = 'Camera error: ' + err.message;
+            }
+        }
+        function stopLiveCamera() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(t => t.stop());
+                mediaStream = null;
+            }
+        }
+        function captureFromLive() {
+            const w = liveVideo.videoWidth || 640, h = liveVideo.videoHeight || 480;
+            liveCanvas.width = w; liveCanvas.height = h;
+            const ctx = liveCanvas.getContext('2d');
+            ctx.drawImage(liveVideo, 0, 0, w, h);
+            return new Promise(resolve => liveCanvas.toBlob(b => resolve(b), 'image/jpeg', 0.9));
+        }
+        async function addCaptureToUploads() {
+            if (!lastCapturedBlob) {
+                // if no prior capture, capture now
+                lastCapturedBlob = await captureFromLive();
+            }
+            const file = new File([lastCapturedBlob], `selfie_${Date.now()}.jpg`, { type: 'image/jpeg' });
+            selectedFiles.push(file);
+            updateUI();
+            // Reset
+            lastCapturedBlob = null;
+            cameraStatus.textContent = '✅ Captured selfie added to uploads';
+        }
+
+        startLiveBtn.addEventListener('click', startLiveCamera);
+        captureLiveBtn.addEventListener('click', async () => {
+            lastCapturedBlob = await captureFromLive();
+            cameraStatus.textContent = 'Captured. Click "Add to Uploads" to include it.';
+        });
+        addCaptureBtn.addEventListener('click', addCaptureToUploads);
+        stopLiveBtn.addEventListener('click', () => {
+            stopLiveCamera();
+            cameraSection.style.display = 'none';
+        });
+
+        // Initialize UI
+        updateUI();
+
+        // Cleanup on unload
+        window.addEventListener('beforeunload', stopLiveCamera);
+    </script>
+</body>
+</html>

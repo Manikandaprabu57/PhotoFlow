@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login</title>
+  <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+</head>
+<body>
+  <div class="container">
+    <div class="login-box">
+      <h2>Login with OTP</h2>
+      <form id="otpForm">
+        <div class="input-group">
+          <i class="fas fa-user"></i>
+          <input type="text" id="identifier" name="identifier" placeholder="Type your Email or Phone number" required />
+        </div>
+        <div class="input-group otp-group">
+          <i class="fas fa-key"></i>
+          <input type="text" id="otp" name="otp" placeholder="Enter OTP" required />
+          <button type="button" id="getOtpBtn" class="get-otp-btn">Get OTP</button>
+        </div>
+        <button type="submit" class="login-btn">Login</button>
+        <p class="register-link">Don't have an account? <a href="register.html">Register</a></p>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let otpCountdownId = null;
+    function startOtpCountdown(seconds) {
+      const btn = document.getElementById('getOtpBtn');
+      let remaining = seconds;
+      btn.disabled = true;
+      btn.textContent = `Resend OTP (${remaining}s)`;
+      otpCountdownId = setInterval(() => {
+        remaining -= 1;
+        if (remaining > 0) {
+          btn.textContent = `Resend OTP (${remaining}s)`;
+        } else {
+          clearInterval(otpCountdownId);
+          otpCountdownId = null;
+          btn.disabled = false;
+          btn.textContent = 'Resend OTP';
+        }
+      }, 1000);
+    }
+
+    document.getElementById("getOtpBtn").addEventListener("click", function () {
+      const identifier = document.getElementById("identifier").value;
+
+      if (!identifier) {
+        alert("Please enter your email.");
+        return;
+      }
+
+      if (this.disabled) return; // prevent clicks during countdown
+
+      fetch("/api/send-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ identifier })
+      })
+      .then(res => res.json())
+      .then(data => {
+        alert(data.message);
+        startOtpCountdown(60);
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Failed to send OTP.");
+      });
+    });
+
+    document.getElementById("otpForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const identifier = document.getElementById("identifier").value;
+      const otp = document.getElementById("otp").value;
+
+      fetch("/api/verify-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ identifier, otp })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Save identifier for dashboard greeting
+          try { localStorage.setItem('pfp_user_identifier', identifier); } catch (e) {}
+          alert("Login successful!");
+          window.location.href = "index1.html"; // Redirect to dashboard
+        } else {
+          alert("❌ Invalid OTP.");
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert("OTP verification failed.");
+      });
+    });
+  </script>
+</body>
+</html>

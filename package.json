@@ -1,0 +1,25 @@
+{
+  "name": "photographer-event-manager",
+  "version": "2.0.0",
+  "description": "Event photo management system with face recognition and automated delivery",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "setup": "npm install && echo Setup complete! Run 'npm start' to launch the application."
+  },
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^4.21.2",
+    "mongoose": "^7.8.7",
+    "multer": "^2.0.0-rc.4",
+    "nodemailer": "^7.0.5",
+    "qrcode": "^1.5.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

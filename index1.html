@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photographer Event Manager</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #818cf8;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --gray: #94a3b8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background-color: #f1f5f9;
+            color: var(--dark);
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            min-height: 100vh;
+        }
+        .sidebar {
+            background-color: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+        }
+        .logo img {
+            width: 40px;
+            height: 40px;
+        }
+        .logo h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .nav-item {
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .nav-item:hover {
+            background-color: #f1f5f9;
+        }
+        .nav-item.active {
+            background-color: var(--primary-light);
+            color: white;
+        }
+        .nav-item i {
+            font-size: 1.25rem;
+        }
+        .main-content {
+            padding: 2rem;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #4338ca;
+        }
+        .btn-success {
+            background-color: var(--success);
+            color: white;
+        }
+        .btn-warning {
+            background-color: var(--warning);
+            color: white;
+        }
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+        .events-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        .event-card {
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+        .event-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .event-card-header {
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .event-card-header h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+        .event-status {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        .status-active {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        .status-processing {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        .status-completed {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        .event-card-body {
+            padding: 1rem;
+        }
+        .event-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .stat {
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--gray);
+            text-transform: uppercase;
+        }
+        .event-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            width: 90%;
+            max-width: 500px;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: black;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.25rem;
+        }
+        .qr-code-container {
+            text-align: center;
+            padding: 1rem;
+            border: 2px dashed #d1d5db;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+        }
+        .qr-code-container img {
+            max-width: 200px;
+            margin-bottom: 1rem;
+        }
+        .upload-area {
+            border: 2px dashed #d1d5db;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .upload-area:hover {
+            border-color: var(--primary);
+            background-color: #f8fafc;
+        }
+        .upload-area.dragover {
+            border-color: var(--primary);
+            background-color: #eff6ff;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard">
+        <div class="sidebar">
+            <div class="logo">
+                <img src="https://placehold.co/40x40?text=📸" alt="Logo">
+                <h1>PhotoFlow Pro</h1>
+            </div>
+            <div class="nav-menu">
+                <div class="nav-item active">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Events</span>
+                </div>
+                <div class="nav-item">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Analytics</span>
+                </div>
+                <div class="nav-item">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </div>
+            </div>
+        </div>
+        <div class="main-content">
+            <div class="header">
+                <h2>Event Management</h2>
+                <div style="display:flex;align-items:center;gap:12px;color:#64748b;font-weight:600;">
+                    <i class="fas fa-user-circle" style="font-size:1.4rem;color:#4f46e5"></i>
+                    <span id="userDisplay">Welcome</span>
+                </div>
+                <button class="btn btn-primary" onclick="openCreateEventModal()">
+                    <i class="fas fa-plus"></i>
+                    Create New Event
+                </button>
+            </div>
+
+            <div class="events-grid" id="eventsGrid">
+                <!-- Events will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Event Modal -->
+    <div id="createEventModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create New Event</h3>
+                <span class="close" onclick="closeCreateEventModal()">&times;</span>
+            </div>
+            <form id="createEventForm">
+                <div class="form-group">
+                    <label for="eventName">Event Name</label>
+                    <input type="text" id="eventName" placeholder="e.g., Wedding_Jan20" required>
+                </div>
+                <div class="form-group">
+                    <label for="photographerEmail">Your Email</label>
+                    <input type="email" id="photographerEmail" placeholder="photographer@example.com" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Create Event</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div id="qrCodeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Event QR Code</h3>
+                <span class="close" onclick="closeQrCodeModal()">&times;</span>
+            </div>
+            <div class="qr-code-container" id="qrCodeContainer">
+                <!-- QR code will be displayed here -->
+            </div>
+            <p>Share this QR code with guests so they can upload their selfies!</p>
+            <button class="btn btn-primary" onclick="downloadQrCode()">
+                <i class="fas fa-download"></i>
+                Download QR Code
+            </button>
+        </div>
+    </div>
+
+    <!-- Upload Photos Modal -->
+    <div id="uploadPhotosModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Upload Event Photos</h3>
+                <span class="close" onclick="closeUploadPhotosModal()">&times;</span>
+            </div>
+            <div class="upload-area" id="uploadArea">
+                <i class="fas fa-cloud-upload-alt" style="font-size: 3rem; color: var(--gray); margin-bottom: 1rem;"></i>
+                <p>Drag and drop photos here or click to select</p>
+                <input type="file" id="photoInput" multiple accept="image/*" style="display: none;">
+            </div>
+            <div id="uploadProgress" style="display: none;">
+                <div style="background-color: #e5e7eb; border-radius: 0.5rem; overflow: hidden; margin-top: 1rem;">
+                    <div id="progressBar" style="background-color: var(--primary); height: 20px; width: 0%; transition: width 0.3s;"></div>
+                </div>
+                <p id="progressText" style="text-align: center; margin-top: 0.5rem;">Uploading...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Take Selfie Modal -->
+    <div id="selfieModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Take a Selfie</h3>
+                <span class="close" onclick="closeSelfieModal()">&times;</span>
+            </div>
+            <div class="form-group">
+                <label for="selfieEmail">Your Email</label>
+                <input type="email" id="selfieEmail" placeholder="guest@example.com" required>
+            </div>
+            <div style="display:grid;gap:12px;justify-items:center">
+                <video id="selfieVideo" autoplay playsinline style="width:100%;max-width:480px;border-radius:8px;background:#000"></video>
+                <canvas id="selfieCanvas" style="display:none"></canvas>
+                <div style="display:flex;gap:10px;flex-wrap:wrap">
+                    <button class="btn btn-primary" id="startCameraBtn"><i class="fas fa-camera"></i> Start Camera</button>
+                    <button class="btn btn-warning" id="captureBtn"><i class="fas fa-dot-circle"></i> Capture</button>
+                    <button class="btn btn-success" id="uploadSelfieBtn"><i class="fas fa-cloud-upload-alt"></i> Upload</button>
+                </div>
+                <div id="selfieStatus" style="color:#64748b"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    const API_BASE = ""; // Use relative URLs for same domain
+    let uploadConfig = { maxUploadMB: 1024, maxFilesPerRequest: 2000 };
+    let currentEventName = '';
+    let selfieTargetEvent = '';
+    let mediaStream = null;
+
+    // Load events on page load
+    document.addEventListener('DOMContentLoaded', async () => {
+        loadEvents();
+        const who = getUserIdentifier();
+        if (who) document.getElementById('userDisplay').textContent = `Hi, ${who}`;
+        try {
+            const res = await fetch(`${API_BASE}/api/upload-config`);
+            if (res.ok) uploadConfig = await res.json();
+            console.log('Upload config:', uploadConfig);
+        } catch (_) {}
+    });
+
+    async function loadEvents() {
+        try {
+            const response = await fetch(`${API_BASE}/api/events`);
+            const events = await response.json();
+            displayEvents(events);
+        } catch (error) {
+            console.error('Error loading events:', error);
+        }
+    }
+
+    function displayEvents(events) {
+        const eventsGrid = document.getElementById('eventsGrid');
+        eventsGrid.innerHTML = '';
+
+        events.forEach(event => {
+            const eventCard = document.createElement('div');
+            eventCard.className = 'event-card';
+            eventCard.innerHTML = `
+                <div class="event-card-header" style="display:flex;justify-content:space-between;align-items:center">
+                    <div>
+                        <h3>${event.eventName}</h3>
+                        <span class="event-status status-${event.status}">${event.status}</span>
+                    </div>
+                    <button class="btn btn-danger btn-sm" title="Delete event" onclick="deleteEvent('${event.eventName}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                <div class="event-card-body">
+                    <div class="event-stats">
+                        <div class="stat">
+                            <div class="stat-number">${event.photoCount}</div>
+                            <div class="stat-label">Photos</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-number">${event.guestCount}</div>
+                            <div class="stat-label">Guests</div>
+                        </div>
+                    </div>
+                    <div class="event-actions">
+                        <button class="btn btn-primary btn-sm" onclick="showQrCode('${event.eventName}', '${event.qrCode}')">
+                            <i class="fas fa-qrcode"></i> QR Code
+                        </button>
+                        <button class="btn btn-success btn-sm" onclick="uploadPhotos('${event.eventName}')">
+                            <i class="fas fa-upload"></i> Upload Photos
+                        </button>
+                        <button class="btn btn-info btn-sm" onclick="viewGallery('${event.eventName}')">
+                            <i class="fas fa-images"></i> View Gallery
+                        </button>
+                        <div id="processArea-${event.eventName}"></div>
+                    </div>
+                </div>
+            `;
+            eventsGrid.appendChild(eventCard);
+        });
+        decoratePendingButtons(events);
+    }
+
+    async function decoratePendingButtons(events) {
+        for (const ev of events) {
+            try {
+                const res = await fetch(`${API_BASE}/api/events/${encodeURIComponent(ev.eventName)}/pending-guests-count`);
+                if (!res.ok) continue;
+                const { pending } = await res.json();
+                const holder = document.getElementById(`processArea-${ev.eventName}`);
+                if (!holder) continue;
+                if (pending > 0) {
+                    holder.innerHTML = `<button class="btn btn-warning btn-sm" onclick="processEvent('${ev.eventName}')"><i class="fas fa-cog"></i> Process ${pending} new</button>`;
+                } else {
+                    holder.innerHTML = '';
+                }
+            } catch (_) {}
+        }
+    }
+
+    // User identifier helper
+    function getUserIdentifier() {
+        try { return localStorage.getItem('pfp_user_identifier'); } catch(e) { return ''; }
+    }
+
+    // Delete event permanently
+    async function deleteEvent(eventName) {
+        if (!confirm(`Delete event "${eventName}" permanently? This cannot be undone.`)) return;
+        try {
+            const res = await fetch(`${API_BASE}/api/events/${encodeURIComponent(eventName)}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to delete');
+            alert('Event deleted');
+            loadEvents();
+        } catch (err) {
+            alert('Delete failed: ' + err.message);
+        }
+    }
+
+    // Selfie modal controls
+    function openSelfieModal(eventName) {
+        selfieTargetEvent = eventName;
+        document.getElementById('selfieEmail').value = getUserIdentifier() || '';
+        document.getElementById('selfieModal').style.display = 'block';
+        document.getElementById('selfieStatus').textContent = '';
+    }
+    function closeSelfieModal() {
+        document.getElementById('selfieModal').style.display = 'none';
+        stopCamera();
+    }
+
+    async function startCamera() {
+        try {
+            mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            const video = document.getElementById('selfieVideo');
+            video.srcObject = mediaStream;
+        } catch (err) {
+            document.getElementById('selfieStatus').textContent = 'Camera error: ' + err.message;
+        }
+    }
+    function stopCamera() {
+        if (mediaStream) {
+            mediaStream.getTracks().forEach(t => t.stop());
+            mediaStream = null;
+        }
+    }
+    function captureSelfie() {
+        const video = document.getElementById('selfieVideo');
+        const canvas = document.getElementById('selfieCanvas');
+        const w = video.videoWidth || 640, h = video.videoHeight || 480;
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, w, h);
+        return new Promise(resolve => canvas.toBlob(b => resolve(b), 'image/jpeg', 0.9));
+    }
+    async function uploadCapturedSelfie() {
+        const email = document.getElementById('selfieEmail').value.trim();
+        if (!email) { alert('Enter your email'); return; }
+        document.getElementById('selfieStatus').textContent = 'Capturing...';
+        const blob = await captureSelfie();
+        const file = new File([blob], `selfie_${Date.now()}.jpg`, { type: 'image/jpeg' });
+        const fd = new FormData();
+        fd.append('selfies', file);
+        fd.append('email', email);
+        try {
+            document.getElementById('selfieStatus').textContent = 'Uploading...';
+            const res = await fetch(`${API_BASE}/api/upload-selfie/${encodeURIComponent(selfieTargetEvent)}`, { method: 'POST', body: fd });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Upload failed');
+            document.getElementById('selfieStatus').textContent = '✅ Selfie uploaded';
+            setTimeout(() => { closeSelfieModal(); loadEvents(); }, 1000);
+        } catch (err) {
+            document.getElementById('selfieStatus').textContent = '❌ ' + err.message;
+        }
+    }
+
+    // Bind selfie modal buttons
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('startCameraBtn').onclick = startCamera;
+        document.getElementById('captureBtn').onclick = captureSelfie; // optional preview
+        document.getElementById('uploadSelfieBtn').onclick = uploadCapturedSelfie;
+    });
+
+    // Modal functions
+    function openCreateEventModal() {
+        document.getElementById('createEventModal').style.display = 'block';
+    }
+
+    function closeCreateEventModal() {
+        document.getElementById('createEventModal').style.display = 'none';
+        document.getElementById('createEventForm').reset();
+    }
+
+    function closeQrCodeModal() {
+        document.getElementById('qrCodeModal').style.display = 'none';
+    }
+
+    function closeUploadPhotosModal() {
+        document.getElementById('uploadPhotosModal').style.display = 'none';
+    }
+
+    // Create event
+    document.getElementById('createEventForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const eventName = document.getElementById('eventName').value;
+        const photographerEmail = document.getElementById('photographerEmail').value;
+
+        try {
+            const response = await fetch(`${API_BASE}/api/create-event`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ eventName, photographerEmail })
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                alert('Event created successfully!');
+                closeCreateEventModal();
+                loadEvents();
+            } else {
+                alert(result.error || 'Failed to create event');
+            }
+        } catch (error) {
+            alert('Error creating event');
+            console.error(error);
+        }
+    });
+
+    // Show QR Code
+    function showQrCode(eventName, qrCodeData) {
+        const qrContainer = document.getElementById('qrCodeContainer');
+        // Fallback guest URL if API didn't provide one
+        const fallbackUrl = `${location.origin}/guest-upload.html?event=${encodeURIComponent(eventName)}`;
+        const guestUrl = (qrCodeData && /^https?:\/\//i.test(qrCodeData)) ? qrCodeData : fallbackUrl;
+        qrContainer.innerHTML = `
+            <img src="/events/${eventName}/qr-code.png" alt="QR Code">
+            <p><strong>Event:</strong> ${eventName}</p>
+            <p style="word-break: break-all"><strong>Guest URL:</strong><br>
+                <small id="guestUrlText">${guestUrl}</small>
+            </p>
+            <button class="btn btn-primary btn-sm" onclick="copyGuestUrl()"><i class="fas fa-copy"></i> Copy URL</button>
+        `;
+        document.getElementById('qrCodeModal').style.display = 'block';
+    }
+
+    function copyGuestUrl() {
+        const el = document.getElementById('guestUrlText');
+        if (!el) return;
+        const text = el.textContent || '';
+        navigator.clipboard?.writeText(text).then(() => alert('Guest URL copied')).catch(() => {
+            // Fallback copy
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            alert('Guest URL copied');
+        });
+    }
+
+    // Upload Photos
+    function uploadPhotos(eventName) {
+        currentEventName = eventName;
+        document.getElementById('uploadPhotosModal').style.display = 'block';
+        
+        const uploadArea = document.getElementById('uploadArea');
+        const photoInput = document.getElementById('photoInput');
+
+        uploadArea.onclick = () => photoInput.click();
+
+        uploadArea.ondragover = (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        };
+
+        uploadArea.ondragleave = () => {
+            uploadArea.classList.remove('dragover');
+        };
+
+        uploadArea.ondrop = (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFileUpload(e.dataTransfer.files);
+        };
+
+        photoInput.onchange = (e) => {
+            handleFileUpload(e.target.files);
+        };
+    }
+
+    // Handle file upload
+    async function handleFileUpload(files) {
+        if (!files || files.length === 0) return;
+
+        const progressContainer = document.getElementById('uploadProgress');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+
+        progressContainer.style.display = 'block';
+        progressBar.style.width = '0%';
+        progressText.textContent = 'Preparing...';
+
+        // Pre-filter oversized files only if server advertises a limit; null = unlimited
+        const maxMB = (uploadConfig && uploadConfig.maxUploadMB != null) ? uploadConfig.maxUploadMB : Infinity;
+        const maxBytes = maxMB === Infinity ? Infinity : maxMB * 1024 * 1024;
+        const filesArr = Array.from(files);
+        const valid = filesArr.filter(f => f.size <= maxBytes);
+        const skipped = filesArr.length - valid.length;
+        if (skipped > 0) {
+            console.warn(`Skipping ${skipped} files larger than ${maxMB}MB`);
+        }
+        if (valid.length === 0) {
+            progressText.textContent = `❌ All selected files exceed ${maxMB}MB per file`;
+            return;
+        }
+        progressText.textContent = `Uploading...`;
+
+        // Batch files to avoid huge multipart requests/timeouts
+        const all = valid;
+        const batchSize = 10; // smaller batches improve reliability on slow networks/large files
+        let uploaded = 0;
+
+        for (let i = 0; i < all.length; i += batchSize) {
+            const batch = all.slice(i, i + batchSize);
+            const fd = new FormData();
+            for (const f of batch) fd.append('photos', f);
+
+            try {
+                const res = await fetch(`${API_BASE}/api/upload-event-photos/${currentEventName}`, {
+                    method: 'POST',
+                    body: fd
+                });
+                const ct = res.headers.get('content-type') || '';
+                const data = ct.includes('application/json') ? await res.json() : { error: (await res.text()).slice(0, 200) || 'Server returned non-JSON' };
+                if (!res.ok) {
+                    progressText.textContent = `❌ ${data.error || 'Upload failed'}`;
+                    console.error('Upload error:', data);
+                    return; // stop on first failure
+                }
+                uploaded += (data.photoCount || batch.length);
+                const pct = Math.round((uploaded / all.length) * 100);
+                progressBar.style.width = `${pct}%`;
+                const skipMsg = skipped ? ` (skipped ${skipped} > ${maxMB}MB)` : '';
+                progressText.textContent = `Uploading... ${pct}%${skipMsg}`;
+            } catch (e) {
+                progressText.textContent = '❌ Network/upload failed';
+                console.error(e);
+                return;
+            }
+        }
+
+        progressBar.style.width = '100%';
+        const skipMsg = skipped ? ` (skipped ${skipped} > ${maxMB}MB)` : '';
+        progressText.textContent = `✅ Uploaded ${uploaded} of ${all.length} photos${skipMsg}`;
+        setTimeout(() => { closeUploadPhotosModal(); loadEvents(); }, 1200);
+    }
+
+    // Process Event
+    async function processEvent(eventName) {
+        if (!confirm(`Start face recognition processing for ${eventName}? This may take several minutes.`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE}/api/process-event/${encodeURIComponent(eventName)}`, { method: 'POST' });
+
+            const result = await response.json();
+            if (response.ok) {
+                // Immediately remove the Process button for this event
+                const holder = document.getElementById(`processArea-${eventName}`);
+                if (holder) holder.innerHTML = '';
+                alert('Processing started! You will be notified when complete.');
+                loadEvents();
+            } else {
+                alert(result.error || 'Failed to start processing');
+            }
+        } catch (error) {
+            alert('Error starting processing');
+            console.error(error);
+        }
+    }
+
+    // Download QR Code
+    function downloadQrCode() {
+        // Implementation for downloading QR code
+        const qrImage = document.querySelector('#qrCodeContainer img');
+        if (qrImage) {
+            const link = document.createElement('a');
+            link.href = qrImage.src;
+            link.download = 'event-qr-code.png';
+            link.click();
+        }
+    }
+
+    // View Gallery
+    function viewGallery(eventName) {
+        window.location.href = `photo-gallery.html?event=${eventName}`;
+    }
+
+    // Close modals when clicking outside
+    window.onclick = function(event) {
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(modal => {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+                if (modal.id === 'selfieModal') stopCamera();
+            }
+        });
+    }
+
+    // Auto-refresh flag
+    let autoRefreshStarted = false;
+
+    async function loadEvents() {
+        try {
+            const response = await fetch(`${API_BASE}/api/events`);
+            const events = await response.json();
+            const container = document.getElementById('eventsGrid');
+            container.innerHTML = '';
+            events.forEach(event => {
+                const card = document.createElement('div');
+                card.className = 'event-card';
+                card.innerHTML = `
+                    <div class="event-card-header" style="display:flex;justify-content:space-between;align-items:center">
+                        <div>
+                            <h3>${event.eventName}</h3>
+                            <span class="event-status status-${event.status}">${event.status}</span>
+                        </div>
+                        <button class="btn btn-danger btn-sm" onclick="deleteEvent('${event.eventName}')"><i class="fas fa-trash-alt"></i></button>
+                    </div>
+                    <div class="event-card-body">
+                        <div class="event-stats">
+                            <div class="stat">
+                                <div class="stat-number">${event.photoCount}</div>
+                                <div class="stat-label">Photos</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-number">${event.guestCount}</div>
+                                <div class="stat-label">Guests</div>
+                            </div>
+                        </div>
+                        <div class="event-actions">
+                            <button class="btn btn-primary btn-sm" onclick="showQrCode('${event.eventName}')"><i class="fas fa-qrcode"></i> QR Code</button>
+                            <button class="btn btn-success btn-sm" onclick="uploadPhotos('${event.eventName}')"><i class="fas fa-cloud-upload-alt"></i> Upload Photos</button>
+                            <button class="btn btn-info btn-sm" onclick="viewGallery('${event.eventName}')"><i class="fas fa-images"></i> View Gallery</button>
+                            <div id="processArea-${event.eventName}"></div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+            decoratePendingButtons(events);
+
+            // Start lightweight auto-refresh once to re-check pending guests
+            if (!autoRefreshStarted) {
+                autoRefreshStarted = true;
+                setInterval(async () => {
+                    try {
+                        const res = await fetch(`${API_BASE}/api/events`);
+                        const evs = await res.json();
+                        decoratePendingButtons(evs);
+                    } catch (_) {}
+                }, 15000); // every 15s
+            }
+        } catch (e) {
+            console.error('Failed to load events', e);
+        }
+    }
+    </script>
+</body>
+</html>

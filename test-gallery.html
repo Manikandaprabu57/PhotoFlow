@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallery Debug Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+        .photo-item { border: 1px solid #ccc; padding: 10px; }
+        .photo-item img { width: 100%; height: 150px; object-fit: cover; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Gallery Debug Test</h1>
+    
+    <div class="test-section">
+        <h3>1. API Endpoint Tests</h3>
+        <button onclick="testEventStats()">Test Event Stats</button>
+        <button onclick="testEventPhotos()">Test Event Photos</button>
+        <button onclick="testGuestFolders()">Test Guest Folders</button>
+        <div id="apiResults"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>2. Direct Image Path Test</h3>
+        <div>
+            <p>Testing direct image access:</p>
+            <img src="/events/wedding_jan_20/photos/1755499136399_6E7A5194.JPG" 
+                 style="width: 200px; height: 150px; object-fit: cover; border: 1px solid #ccc;"
+                 onload="console.log('Direct image loaded successfully')"
+                 onerror="console.log('Direct image failed to load')">
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>3. Event Photos from API</h3>
+        <div id="photoResults"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>4. Guest Folders</h3>
+        <div id="guestResults"></div>
+    </div>
+
+    <script>
+        const eventName = 'wedding_jan_20';
+
+        async function testEventStats() {
+            try {
+                const response = await fetch(`/api/event-stats/${eventName}`);
+                const data = await response.json();
+                document.getElementById('apiResults').innerHTML = `
+                    <div class="success">Event Stats: ${JSON.stringify(data, null, 2)}</div>
+                `;
+            } catch (error) {
+                document.getElementById('apiResults').innerHTML = `
+                    <div class="error">Error: ${error.message}</div>
+                `;
+            }
+        }
+
+        async function testEventPhotos() {
+            try {
+                const response = await fetch(`/api/event-photos/${eventName}`);
+                const photos = await response.json();
+                
+                let html = `<div class="success">Found ${photos.length} photos:</div>`;
+                html += '<div class="photo-grid">';
+                
+                photos.slice(0, 6).forEach(photo => {
+                    html += `
+                        <div class="photo-item">
+                            <img src="${photo.path}" alt="${photo.name}" 
+                                 onload="this.style.border='2px solid green'"
+                                 onerror="this.style.border='2px solid red'; this.alt='Failed to load'">
+                            <div>${photo.name}</div>
+                            <div style="font-size: 0.8em; color: #666;">${photo.path}</div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                document.getElementById('photoResults').innerHTML = html;
+                
+            } catch (error) {
+                document.getElementById('photoResults').innerHTML = `
+                    <div class="error">Error loading photos: ${error.message}</div>
+                `;
+            }
+        }
+
+        async function testGuestFolders() {
+            try {
+                const response = await fetch(`/api/guest-folders/${eventName}`);
+                const guests = await response.json();
+                
+                let html = `<div class="success">Found ${guests.length} guests:</div>`;
+                
+                for (const guest of guests) {
+                    html += `<div><strong>${guest.email}</strong> - ${guest.photoCount} photos</div>`;
+                    
+                    // Load guest photos
+                    try {
+                        const photosResponse = await fetch(`/api/guest-photos/${eventName}/${encodeURIComponent(guest.email)}`);
+                        const guestPhotos = await photosResponse.json();
+                        
+                        html += '<div class="photo-grid">';
+                        guestPhotos.forEach(photo => {
+                            html += `
+                                <div class="photo-item">
+                                    <img src="${photo.path}" alt="${photo.name}"
+                                         onload="this.style.border='2px solid green'"
+                                         onerror="this.style.border='2px solid red'; this.alt='Failed to load'">
+                                    <div>${photo.name}</div>
+                                    <div style="font-size: 0.8em; color: #666;">${photo.path}</div>
+                                </div>
+                            `;
+                        });
+                        html += '</div>';
+                        
+                    } catch (error) {
+                        html += `<div class="error">Error loading guest photos: ${error.message}</div>`;
+                    }
+                }
+                
+                document.getElementById('guestResults').innerHTML = html;
+                
+            } catch (error) {
+                document.getElementById('guestResults').innerHTML = `
+                    <div class="error">Error loading guests: ${error.message}</div>
+                `;
+            }
+        }
+
+        // Auto-run tests on page load
+        window.onload = function() {
+            testEventStats();
+            testEventPhotos();
+            testGuestFolders();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhotoFlow Pro - Test Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .event-card {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-primary { background: #4f46e5; color: white; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-warning { background: #f59e0b; color: white; }
+        .btn-info { background: #06b6d4; color: white; }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 8px;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📸 PhotoFlow Pro - Test Dashboard</h1>
+            <p>Direct access for testing face recognition workflow</p>
+        </div>
+        
+        <div class="content">
+            <div class="event-card">
+                <h3>wedding_jan_21 (Active Event)</h3>
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-number" id="photos21">8</div>
+                        <div>Photos</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="guests21">3</div>
+                        <div>Guests</div>
+                    </div>
+                </div>
+                <div>
+                    <button class="btn btn-warning" onclick="processEvent('wedding_jan_21')">
+                        🔄 Process Event
+                    </button>
+                    <button class="btn btn-info" onclick="viewGallery('wedding_jan_21')">
+                        🖼️ View Gallery
+                    </button>
+                    <button class="btn btn-success" onclick="uploadPhotos('wedding_jan_21')">
+                        📤 Upload Photos
+                    </button>
+                </div>
+            </div>
+            
+            <div class="event-card">
+                <h3>wedding_jan_20 (Completed Event)</h3>
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-number">27</div>
+                        <div>Photos</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">1</div>
+                        <div>Guests</div>
+                    </div>
+                </div>
+                <div>
+                    <button class="btn btn-info" onclick="viewGallery('wedding_jan_20')">
+                        🖼️ View Gallery
+                    </button>
+                </div>
+            </div>
+            
+            <div style="margin-top: 30px; padding: 20px; background: #fef3c7; border-radius: 8px;">
+                <h4>🔧 Test Instructions:</h4>
+                <ol>
+                    <li>Click <strong>"Process Event"</strong> on wedding_jan_21 to test face recognition</li>
+                    <li>Wait for processing to complete (check terminal for logs)</li>
+                    <li>Click <strong>"View Gallery"</strong> to see guest folders with matched photos</li>
+                    <li>Guest folders should be named: john.doe@gmail.com, sarah.smith@yahoo.com, mike.johnson@outlook.com</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Process event function
+        async function processEvent(eventName) {
+            try {
+                const button = event.target;
+                button.disabled = true;
+                button.textContent = '🔄 Processing...';
+                
+                const response = await fetch(`/api/process-event/${eventName}`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('✅ Face recognition processing completed successfully!');
+                    button.textContent = '✅ Completed';
+                    button.className = 'btn btn-success';
+                } else {
+                    alert(`❌ Processing failed: ${result.error}`);
+                    button.disabled = false;
+                    button.textContent = '🔄 Process Event';
+                }
+            } catch (error) {
+                alert(`❌ Error: ${error.message}`);
+                button.disabled = false;
+                button.textContent = '🔄 Process Event';
+            }
+        }
+        
+        // View gallery function
+        function viewGallery(eventName) {
+            window.location.href = `photo-gallery.html?event=${eventName}`;
+        }
+        
+        // Upload photos function
+        function uploadPhotos(eventName) {
+            window.location.href = `upload.html?event=${eventName}`;
+        }
+    </script>
+</body>
+</html>
