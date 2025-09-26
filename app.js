@@ -19,6 +19,14 @@ app.use(express.static(path.join(__dirname))); // Serve static files (HTML/CSS)
 
 // Detect an available Python command once at startup
 function detectPythonCommand() {
+  // First, try the virtual environment Python
+  const venvPython = path.join(__dirname, '.venv', 'Scripts', 'python.exe');
+  if (fs.existsSync(venvPython)) {
+    console.log(`🐍 Using virtual environment Python: ${venvPython}`);
+    return { cmd: venvPython, args: [] };
+  }
+
+  // Fallback to system Python options
   const candidates = [
     { cmd: "py", args: ["-3"] }, // Windows launcher, force py3
     { cmd: "py", args: [] },
@@ -439,16 +447,14 @@ app.post("/api/process-event/:eventName", async (req, res) => {
     // Update event status
     await Event.findOneAndUpdate({ eventName }, { status: 'processing' });
 
-    const pythonScript = path.join(__dirname, 'enhanced_face_match.py');
-    const eventPath = path.join(EVENTS_DIR, eventName);
+            const pythonScript = path.join(__dirname, 'deepface_match_fixed.py');
+            const eventPath = path.join(EVENTS_DIR, eventName);
 
-    // Enhanced debugging
-    console.log(`🔍 Python script path: ${pythonScript}`);
-    console.log(`📁 Event path: ${eventPath}`);
-    console.log(`📂 Script exists: ${fs.existsSync(pythonScript)}`);
-    console.log(`📂 Event exists: ${fs.existsSync(eventPath)}`);
-
-    // Check for selfies BEFORE processing
+            // Enhanced debugging
+            console.log(`🔍 Python script path: ${pythonScript}`);
+            console.log(`📁 Event path: ${eventPath}`);
+            console.log(`📂 Script exists: ${fs.existsSync(pythonScript)}`);
+            console.log(`📂 Event exists: ${fs.existsSync(eventPath)}`);    // Check for selfies BEFORE processing
     const selfiesPath = path.join(eventPath, 'selfies');
     let guestCount = 0;
     if (fs.existsSync(selfiesPath)) {
@@ -484,15 +490,19 @@ app.post("/api/process-event/:eventName", async (req, res) => {
       });
     }
 
-    console.log(`🐍 Starting Python process with: ${PYTHON.cmd} ${PYTHON.args.join(' ')}`);
-    console.log(`🐍 enhanced_face_match.py args:`, [eventPath, ...args]);
+            // Filter out undefined/null values and prepare arguments
+            const scriptArgs = [eventPath];
+            if (typeof args[0] === 'string' && args[0] !== 'undefined') {
+                scriptArgs.push(args[0]);
+            }
 
-    const pythonProcess = spawn(PYTHON.cmd, [...PYTHON.args, pythonScript, eventPath, ...args], {
-      cwd: __dirname,
-      env: { ...process.env }
-    });
+            console.log(`🐍 Starting Python process with: ${PYTHON.cmd} ${PYTHON.args.join(' ')}`);
+            console.log(`🐍 deepface_match_fixed.py args:`, scriptArgs);
 
-    let outputData = '';
+            const pythonProcess = spawn(PYTHON.cmd, [...PYTHON.args, pythonScript, ...scriptArgs], {
+                cwd: __dirname,
+                env: { ...process.env }
+            });    let outputData = '';
     let errorData = '';
 
     // Kill process if it hangs
@@ -506,10 +516,10 @@ app.post("/api/process-event/:eventName", async (req, res) => {
       console.log(`Python output: ${data}`);
     });
 
-    pythonProcess.stderr.on('data', (data) => {
-      errorData += data.toString();
-      console.error(`Python error: ${data}`);
-    });
+    // pythonProcess.stderr.on('data', (data) => {
+    //   errorData += data.toString();
+    //   console.error(`Python error: ${data}`);
+    // });
 
     pythonProcess.on('close', async (code) => {
       clearTimeout(killTimer);
@@ -588,7 +598,15 @@ app.get('/api/events/:eventName/pending-guests-count', async (req, res) => {
 async function generateZipFilesAndSendEmails(eventName) {
   try {
     const guests = await Guest.find({ eventName });
+    if (!guests || guests.length === 0) {
+      console.log('⚠️ No guests found for event:', eventName);
+      return;
+    }
+
     const eventPath = path.join(EVENTS_DIR, eventName);
+    if (!fs.existsSync(eventPath)) {
+      throw new Error(`Event path does not exist: ${eventPath}`);
+    }
 
     // Ensure exports directory exists
     const exportsPath = path.join(eventPath, 'exports');
@@ -597,29 +615,63 @@ async function generateZipFilesAndSendEmails(eventName) {
       console.log(`📦 Created exports directory: ${exportsPath}`);
     }
 
+    console.log(`🔄 Processing ${guests.length} guests for event: ${eventName}`);
     for (const guest of guests) {
       const guestMatchedPath = path.join(eventPath, 'matched', guest.email);
       const zipPath = path.join(eventPath, 'exports', `${guest.email}.zip`);
+      
+      console.log(`\n📎 Processing guest: ${guest.email}`);
+      console.log(`📂 Matched photos path: ${guestMatchedPath}`);
 
       if (fs.existsSync(guestMatchedPath)) {
-        // Create zip file
-        await createZipFile(guestMatchedPath, zipPath);
-        console.log(`✅ Zip created for ${guest.email}: ${zipPath}`);
-
-        // Send email with download link (optional)
-        if (process.env.EMAIL_ENABLED && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-          console.log(`✉️ Sending email to ${guest.email} ...`);
-          await sendGuestEmail(guest.email, eventName, zipPath);
-          console.log(`✅ Email dispatch attempted to ${guest.email}`);
-        } else {
-          console.log(`✉️ Skipping email to ${guest.email}: EMAIL_ENABLED=${process.env.EMAIL_ENABLED}, creds present=${!!process.env.EMAIL_USER && !!process.env.EMAIL_PASS}`);
+        // Check if there are any matched photos
+        const matchedPhotos = fs.readdirSync(guestMatchedPath);
+        if (matchedPhotos.length === 0) {
+          console.log(`⚠️ No matched photos found for guest: ${guest.email}`);
+          continue;
         }
 
-        // Update guest record
-        await Guest.findOneAndUpdate(
-          { email: guest.email, eventName },
-          { zipGenerated: true, emailSent: process.env.EMAIL_ENABLED && !!process.env.EMAIL_USER && !!process.env.EMAIL_PASS }
-        );
+        console.log(`📸 Found ${matchedPhotos.length} matched photos for ${guest.email}`);
+        
+        try {
+          // Remove existing zip if it exists
+          if (fs.existsSync(zipPath)) {
+            fs.unlinkSync(zipPath);
+            console.log(`🗑️ Removed existing zip file for ${guest.email}`);
+          }
+
+          // Create zip file
+          await createZipFile(guestMatchedPath, zipPath);
+          
+          // Verify the zip file
+          const zipStats = fs.statSync(zipPath);
+          if (zipStats.size === 0) {
+            throw new Error('Created zip file is empty');
+          }
+          
+          // Verify zip contains the expected number of files
+          const { execSync } = require('child_process');
+          const zipContent = execSync(`powershell -Command "Compress-Archive -Path '${zipPath}' -ListContent"`, { encoding: 'utf8' });
+          console.log(`✅ Zip created for ${guest.email}: ${zipPath} (${zipStats.size} bytes)`);
+          console.log(`📋 Contains ${matchedPhotos.length} matched photos`);
+
+          // Send email with download link (optional)
+          if (process.env.EMAIL_ENABLED && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+            console.log(`✉️ Sending email to ${guest.email} ...`);
+            await sendGuestEmail(guest.email, eventName, zipPath);
+            console.log(`✅ Email dispatch attempted to ${guest.email}`);
+          } else {
+            console.log(`✉️ Skipping email to ${guest.email}: EMAIL_ENABLED=${process.env.EMAIL_ENABLED}, creds present=${!!process.env.EMAIL_USER && !!process.env.EMAIL_PASS}`);
+          }
+
+          // Update guest record
+          await Guest.findOneAndUpdate(
+            { email: guest.email, eventName },
+            { zipGenerated: true, emailSent: process.env.EMAIL_ENABLED && !!process.env.EMAIL_USER && !!process.env.EMAIL_PASS }
+          );
+        } catch (error) {
+          console.error(`❌ Error processing ${guest.email}:`, error);
+        }
       }
     }
   } catch (error) {
@@ -630,14 +682,106 @@ async function generateZipFilesAndSendEmails(eventName) {
 // 📦 Create zip file
 function createZipFile(sourcePath, outputPath) {
   return new Promise((resolve, reject) => {
+    try {
+      // Verify source path exists and has files
+      if (!fs.existsSync(sourcePath)) {
+        reject(new Error(`Source path does not exist: ${sourcePath}`));
+        return;
+      }
+
+      const files = fs.readdirSync(sourcePath);
+      if (files.length === 0) {
+        reject(new Error(`No files found in source path: ${sourcePath}`));
+        return;
+      }
+
+      // Create output directory if it doesn't exist
+      const outputDir = path.dirname(outputPath);
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+      }
+
+      // Create a temporary directory for organizing files
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'photoai-zip-'));
+      const photosDir = path.join(tempDir, 'matched_photos');
+      fs.mkdirSync(photosDir);
+
+      // Copy and organize files
+      let photoCount = 0;
+      for (const file of files) {
+        const sourcefile = path.join(sourcePath, file);
+        const destFile = path.join(photosDir, file);
+        fs.copyFileSync(sourcefile, destFile);
+        photoCount++;
+      }
+
+      // Create a metadata file
+      const metadata = {
+        totalPhotos: photoCount,
+        generatedAt: new Date().toISOString(),
+        event: path.basename(path.dirname(path.dirname(sourcePath))),
+        guest: path.basename(sourcePath)
+      };
+      fs.writeFileSync(
+        path.join(tempDir, 'metadata.json'), 
+        JSON.stringify(metadata, null, 2)
+      );
+
     const output = fs.createWriteStream(outputPath);
     const archive = archiver('zip', { zlib: { level: 9 } });
 
-    output.on('close', () => resolve());
-    archive.on('error', (err) => reject(err));
+    output.on('close', () => {
+      const stats = fs.statSync(outputPath);
+      console.log(`📦 Archive created: ${outputPath} (${stats.size} bytes)`);
+      
+      // Clean up temp directory
+      try {
+        fs.rmSync(tempDir, { recursive: true });
+      } catch (err) {
+        console.warn('⚠️ Failed to clean up temp directory:', err);
+      }
+      
+      resolve();
+    });
+
+    archive.on('warning', (err) => {
+      if (err.code === 'ENOENT') {
+        console.warn('⚠️ Zip warning:', err);
+      } else {
+        reject(err);
+      }
+    });
+
+    archive.on('error', (err) => {
+      console.error('❌ Zip error:', err);
+      try {
+        fs.rmSync(tempDir, { recursive: true });
+      } catch (cleanupErr) {
+        console.warn('⚠️ Failed to clean up temp directory after error:', cleanupErr);
+      }
+      reject(err);
+    });
+
+    // Add a README file
+    const readmeContent = `Thank you for using our photo matching service!
+
+Event: ${metadata.event}
+Total Photos: ${metadata.totalPhotos}
+Generated: ${new Date().toLocaleString()}
+
+This zip file contains:
+- matched_photos/: All photos that matched your selfie
+- metadata.json: Technical details about the matching process
+`;
+    archive.append(readmeContent, { name: 'README.txt' });
 
     archive.pipe(output);
-    archive.directory(sourcePath, false);
+    // Add the organized content
+    archive.directory(tempDir, false);
+    archive.finalize();
+    } catch (error) {
+      reject(error);
+    }
     archive.finalize();
   });
 }
@@ -1088,6 +1232,7 @@ app.use((err, req, res, next) => {
   if (err && err.name === 'MulterError') {
     return res.status(400).json({ error: err.message || 'Upload failed' });
   }
+ 
   res.status(500).json({ error: err?.message || 'Server error' });
 });
 

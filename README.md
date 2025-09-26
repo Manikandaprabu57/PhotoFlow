@@ -1,53 +1,65 @@
-# PhotoFlow Pro - Photographer Event Management System
+# PhotoFlow - Event Photo Management System
 
-A complete solution for photographers to manage event photos with automated face recognition and guest delivery.
+Modern event photo management system with AI-powered face recognition and automated guest delivery.
 
 ## 🌟 Features
 
-- **Event Management**: Create and organize photo events
-- **QR Code Generation**: Automatic QR codes for guest selfie uploads
-- **Face Recognition**: AI-powered photo matching using multiple algorithms
-- **Automated Delivery**: Zip files and email delivery to guests
-- **Mobile-Friendly**: Responsive guest upload interface
-- **Professional Dashboard**: Modern photographer interface
+- **Advanced Face Recognition**: Using DeepFace with VGG-Face model
+- **Secure Authentication**: OTP-based login system
+- **Real-time Processing**: Instant photo matching and delivery
+- **Automated Distribution**: ZIP file generation for matched photos
+- **QR Code Integration**: Easy guest access system
+- **Mobile-First Design**: Responsive, modern interface
+- **Robust Security**: Rate limiting, input validation, and secure file handling
 
 ## 🏗️ System Architecture
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Photographer  │    │   Guest (Mobile) │    │  Face AI Engine │
-│    Dashboard    │    │  Upload Interface│    │   (Python)      │
+│   Photographer  │    │   Guest (Mobile) │    │  DeepFace AI    │
+│    Dashboard    │    │  Upload Interface│    │   Engine        │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
          │                        │                        │
          └──────────┬───────────────┴────────────┬─────────┘
                     │                            │
               ┌─────▼─────┐              ┌──────▼──────┐
-              │  Node.js  │              │   MongoDB   │
-              │  Backend  │◄────────────►│  Database   │
+              │  Express  │              │   File      │
+              │  Server   │◄────────────►│   System    │
               └───────────┘              └─────────────┘
 ```
 
 ## 📋 Prerequisites
 
 ### System Requirements
-- **Node.js** 16+ 
-- **Python** 3.8+
-- **MongoDB** 4.4+
-- **Git**
+- **Node.js** >= 14.0.0
+- **Python** >= 3.8
+- **Storage** Space for photos and processing
 
 ### Python Dependencies
-- face_recognition
-- opencv-python
-- numpy
-- Pillow
+```
+deepface==0.0.79
+pillow==10.0.1
+numpy==1.24.3
+tensorflow==2.13.0
+mtcnn==0.1.1
+opencv-python-headless==4.8.1.78
+tqdm==4.66.1
+```
 
 ### Node.js Dependencies
-- express
-- mongoose
-- multer
-- qrcode
-- archiver
-- nodemailer
+```json
+{
+  "dependencies": {
+    "express": "^4.21.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.0.0",
+    "multer": "^2.0.0-rc.4",
+    "nodemailer": "^7.0.5",
+    "qrcode": "^1.5.3",
+    "express-rate-limit": "^7.1.0"
+  }
+}
+```
 
 ## 🚀 Installation
 
