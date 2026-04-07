@@ -8,6 +8,12 @@ node_modules/
 .DS_Store
 Thumbs.db
 
+# Credentials and keys
+keys/
+*.json
+!package.json
+!package-lock.json
+
 # Python cache
 __pycache__/
 *.pyc

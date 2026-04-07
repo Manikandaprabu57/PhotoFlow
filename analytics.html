@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="/public/images/favicon.png">
+    <title>Analytics Dashboard - PhotoFlow Pro</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #818cf8;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --gray: #94a3b8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            
+            /* Light theme (default) */
+            --bg-primary: #ffffff;
+            --bg-secondary: #f1f5f9;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --card-bg: #ffffff;
+            --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            --sidebar-bg: #ffffff;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: #334155;
+            --card-bg: #1e293b;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            --sidebar-bg: #0f172a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+        body {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            min-height: 100vh;
+        }
+        .sidebar {
+            background-color: var(--sidebar-bg);
+            box-shadow: var(--card-shadow);
+            padding: 1.5rem;
+            border-right: 1px solid var(--border-color);
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+        }
+        .logo img {
+            width: 40px;
+            height: 40px;
+        }
+        .logo h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .nav-item {
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+        .nav-item:hover {
+            background-color: var(--bg-secondary);
+        }
+        .nav-item.active {
+            background-color: var(--primary-light);
+            color: white;
+        }
+        .nav-item i {
+            font-size: 1.25rem;
+        }
+        .main-content {
+            padding: 2rem;
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .header h2 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .time-range {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .time-range select {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #d1d5db;
+            background: white;
+            cursor: pointer;
+        }
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #4338ca;
+        }
+        
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: var(--card-bg);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: var(--card-shadow);
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .stat-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        .stat-icon.primary { background: #eff6ff; color: var(--primary); }
+        .stat-icon.success { background: #f0fdf4; color: var(--success); }
+        .stat-icon.warning { background: #fffbeb; color: var(--warning); }
+        .stat-icon.danger { background: #fef2f2; color: var(--danger); }
+        .stat-icon.info { background: #eff6ff; color: var(--info); }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .stat-trend {
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .stat-trend.up { color: var(--success); }
+        .stat-trend.down { color: var(--danger); }
+        .stat-trend.neutral { color: var(--gray); }
+        
+        /* Chart Containers */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .chart-card {
+            background: var(--card-bg);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--border-color);
+        }
+        .chart-card h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        
+        /* Table Styles */
+        .table-card {
+            background: var(--card-bg);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+        }
+        .table-card h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        thead {
+            background-color: var(--bg-secondary);
+        }
+        th {
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+        td {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.875rem;
+            color: var(--text-primary);
+        }
+        tr:hover {
+            background-color: var(--bg-secondary);
+        }
+        
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+        .loading i {
+            font-size: 3rem;
+            color: var(--primary);
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                display: none;
+            }
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .badge-primary {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="logo">
+                <img src="/public/images/logo.png" alt="PhotoFlow Logo" onerror="this.src='https://placehold.co/40x40?text=📸'">
+                <h1>PhotoFlow Pro</h1>
+            </div>
+            <div class="nav-menu">
+                <a href="index1.html" class="nav-item">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Events</span>
+                </a>
+                <a href="analytics.html" class="nav-item active">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="settings.html" class="nav-item">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h2>📊 Analytics Dashboard</h2>
+                <div class="time-range">
+                    <label for="timeRange" style="color: var(--gray); font-size: 0.875rem;">Time Range:</label>
+                    <select id="timeRange" onchange="loadAnalytics()">
+                        <option value="7">Last 7 Days</option>
+                        <option value="30" selected>Last 30 Days</option>
+                        <option value="90">Last 90 Days</option>
+                        <option value="365">Last Year</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="loadAnalytics()">
+                        <i class="fas fa-sync-alt"></i>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="loadingState" class="loading">
+                <i class="fas fa-spinner"></i>
+                <p>Loading analytics data...</p>
+            </div>
+
+            <!-- Main Content Area -->
+            <div id="analyticsContent" style="display: none;">
+                <!-- Stats Overview -->
+                <div class="stats-grid" id="statsGrid">
+                    <!-- Stats will be loaded here -->
+                </div>
+
+                <!-- Monthly Comparison -->
+                <div class="chart-card" style="margin-bottom: 2rem;">
+                    <h3>📅 Monthly Comparison</h3>
+                    <div id="monthlyComparison" style="padding: 1rem;">
+                        <!-- Comparison data will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3>📈 Events Created Over Time</h3>
+                        <div class="chart-container">
+                            <canvas id="eventsTimelineChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <h3>📊 Event Status Distribution</h3>
+                        <div class="chart-container">
+                            <canvas id="statusPieChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <h3>📸 Photos Uploaded by Event</h3>
+                        <div class="chart-container">
+                            <canvas id="photosBarChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <h3>🕐 Guest Activity by Hour</h3>
+                        <div class="chart-container">
+                            <canvas id="activityHeatmapChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Performing Events Table -->
+                <div class="table-card">
+                    <h3>🏆 Top Performing Events</h3>
+                    <table id="topEventsTable">
+                        <thead>
+                            <tr>
+                                <th>Event Name</th>
+                                <th>Guests</th>
+                                <th>Photos</th>
+                                <th>Total Matches</th>
+                                <th>Avg Matches/Guest</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                            </tr>
+                        </thead>
+                        <tbody id="topEventsBody">
+                            <!-- Table rows will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = "";
+        let charts = {};
+
+        // Authorization header helper
+        function getAuthHeaders() {
+            try {
+                const token = localStorage.getItem('userToken');
+                return token ? { 'Authorization': 'Bearer ' + token } : {};
+            } catch (e) { return {}; }
+        }
+
+        // Apply theme on page load
+        function applyTheme() {
+            const savedTheme = localStorage.getItem('photoflow_theme') || 'light';
+            
+            if (savedTheme === 'auto') {
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+            } else {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            }
+        }
+
+        // Apply theme immediately
+        applyTheme();
+
+        // Load all analytics data
+        async function loadAnalytics() {
+            showLoading(true);
+            
+            try {
+                const range = document.getElementById('timeRange').value;
+                
+                // Fetch all analytics data in parallel
+                const [overview, timeseries, topEvents, statusDist, monthlyComp] = await Promise.all([
+                    fetch(`${API_BASE}/api/analytics/overview`, { headers: getAuthHeaders() }).then(r => r.json()),
+                    fetch(`${API_BASE}/api/analytics/timeseries?range=${range}`, { headers: getAuthHeaders() }).then(r => r.json()),
+                    fetch(`${API_BASE}/api/analytics/top-events?limit=10`, { headers: getAuthHeaders() }).then(r => r.json()),
+                    fetch(`${API_BASE}/api/analytics/status-distribution`, { headers: getAuthHeaders() }).then(r => r.json()),
+                    fetch(`${API_BASE}/api/analytics/monthly-comparison`, { headers: getAuthHeaders() }).then(r => r.json())
+                ]);
+
+                // Render all components
+                renderStatsCards(overview, monthlyComp);
+                renderMonthlyComparison(monthlyComp);
+                renderEventsTimelineChart(timeseries);
+                renderStatusPieChart(statusDist);
+                renderPhotosBarChart(timeseries);
+                renderActivityHeatmap(timeseries);
+                renderTopEventsTable(topEvents);
+
+                showLoading(false);
+            } catch (error) {
+                console.error('Failed to load analytics:', error);
+                showLoading(false);
+                alert('Failed to load analytics data. Please try again.');
+            }
+        }
+
+        function showLoading(show) {
+            document.getElementById('loadingState').style.display = show ? 'block' : 'none';
+            document.getElementById('analyticsContent').style.display = show ? 'none' : 'block';
+        }
+
+        // Render stats cards
+        function renderStatsCards(overview, monthlyComp) {
+            const statsGrid = document.getElementById('statsGrid');
+            
+            const cards = [
+                {
+                    icon: '📅',
+                    iconClass: 'primary',
+                    value: overview.eventPerformance.totalEvents,
+                    label: 'Total Events',
+                    trend: monthlyComp.growth.events,
+                    trendLabel: 'vs last month'
+                },
+                {
+                    icon: '✅',
+                    iconClass: 'success',
+                    value: overview.eventPerformance.completedEvents,
+                    label: 'Completed Events',
+                    trend: null
+                },
+                {
+                    icon: '👥',
+                    iconClass: 'info',
+                    value: overview.guestEngagement.totalGuests,
+                    label: 'Total Guests',
+                    trend: monthlyComp.growth.guests,
+                    trendLabel: 'vs last month'
+                },
+                {
+                    icon: '📸',
+                    iconClass: 'warning',
+                    value: overview.photoStats.totalPhotos,
+                    label: 'Total Photos',
+                    trend: null
+                },
+                {
+                    icon: '🎯',
+                    iconClass: 'success',
+                    value: `${overview.eventPerformance.successRate}%`,
+                    label: 'Success Rate',
+                    trend: null
+                },
+                {
+                    icon: '📧',
+                    iconClass: 'primary',
+                    value: `${overview.emailStats.emailDeliveryRate}%`,
+                    label: 'Email Delivery Rate',
+                    trend: null
+                },
+                {
+                    icon: '🤳',
+                    iconClass: 'info',
+                    value: overview.guestEngagement.avgSelfiesPerGuest,
+                    label: 'Avg Selfies/Guest',
+                    trend: null
+                },
+                {
+                    icon: '🔗',
+                    iconClass: 'success',
+                    value: overview.photoStats.avgMatchesPerGuest,
+                    label: 'Avg Matches/Guest',
+                    trend: null
+                }
+            ];
+
+            statsGrid.innerHTML = cards.map(card => `
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div class="stat-icon ${card.iconClass}">
+                            ${card.icon}
+                        </div>
+                    </div>
+                    <div class="stat-value">${card.value}</div>
+                    <div class="stat-label">${card.label}</div>
+                    ${card.trend !== null && card.trend !== undefined ? `
+                        <div class="stat-trend ${card.trend > 0 ? 'up' : card.trend < 0 ? 'down' : 'neutral'}">
+                            <i class="fas fa-arrow-${card.trend > 0 ? 'up' : card.trend < 0 ? 'down' : 'right'}"></i>
+                            ${Math.abs(card.trend)}% ${card.trendLabel || ''}
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        // Render monthly comparison
+        function renderMonthlyComparison(data) {
+            const container = document.getElementById('monthlyComparison');
+            
+            container.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+                    <div>
+                        <div style="font-size: 0.875rem; color: var(--gray); margin-bottom: 0.5rem;">This Month</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--dark);">${data.thisMonth.events} Events</div>
+                        <div style="font-size: 1rem; color: var(--gray);">${data.thisMonth.guests} Guests</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.875rem; color: var(--gray); margin-bottom: 0.5rem;">Last Month</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--dark);">${data.lastMonth.events} Events</div>
+                        <div style="font-size: 1rem; color: var(--gray);">${data.lastMonth.guests} Guests</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.875rem; color: var(--gray); margin-bottom: 0.5rem;">Event Growth</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: ${data.growth.events >= 0 ? 'var(--success)' : 'var(--danger)'};">
+                            ${data.growth.events > 0 ? '+' : ''}${data.growth.events}%
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.875rem; color: var(--gray); margin-bottom: 0.5rem;">Guest Growth</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: ${data.growth.guests >= 0 ? 'var(--success)' : 'var(--danger)'};">
+                            ${data.growth.guests > 0 ? '+' : ''}${data.growth.guests}%
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Render events timeline chart
+        function renderEventsTimelineChart(timeseries) {
+            const ctx = document.getElementById('eventsTimelineChart');
+            if (!ctx) return;
+
+            if (charts.eventsTimeline) {
+                charts.eventsTimeline.destroy();
+            }
+
+            const dates = Object.keys(timeseries.eventsByDate).sort();
+            const values = dates.map(date => timeseries.eventsByDate[date]);
+
+            charts.eventsTimeline = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates.map(d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+                    datasets: [{
+                        label: 'Events Created',
+                        data: values,
+                        borderColor: '#4f46e5',
+                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Render status pie chart
+        function renderStatusPieChart(distribution) {
+            const ctx = document.getElementById('statusPieChart');
+            if (!ctx) return;
+
+            if (charts.statusPie) {
+                charts.statusPie.destroy();
+            }
+
+            charts.statusPie = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Active', 'Processing', 'Completed'],
+                    datasets: [{
+                        data: [distribution.active, distribution.processing, distribution.completed],
+                        backgroundColor: [
+                            '#3b82f6',
+                            '#f59e0b',
+                            '#10b981'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Render photos bar chart
+        function renderPhotosBarChart(timeseries) {
+            const ctx = document.getElementById('photosBarChart');
+            if (!ctx) return;
+
+            if (charts.photosBar) {
+                charts.photosBar.destroy();
+            }
+
+            const events = timeseries.photosByEvent.slice(0, 10);
+            
+            charts.photosBar = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: events.map(e => e.eventName.length > 15 ? e.eventName.substring(0, 15) + '...' : e.eventName),
+                    datasets: [{
+                        label: 'Photos',
+                        data: events.map(e => e.photoCount),
+                        backgroundColor: '#4f46e5'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Render activity heatmap
+        function renderActivityHeatmap(timeseries) {
+            const ctx = document.getElementById('activityHeatmapChart');
+            if (!ctx) return;
+
+            if (charts.activityHeatmap) {
+                charts.activityHeatmap.destroy();
+            }
+
+            const hours = Array.from({ length: 24 }, (_, i) => i);
+            const labels = hours.map(h => {
+                if (h === 0) return '12 AM';
+                if (h < 12) return `${h} AM`;
+                if (h === 12) return '12 PM';
+                return `${h - 12} PM`;
+            });
+
+            charts.activityHeatmap = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Guest Uploads',
+                        data: timeseries.guestsByHour,
+                        backgroundColor: hours.map(h => {
+                            const value = timeseries.guestsByHour[h];
+                            const max = Math.max(...timeseries.guestsByHour);
+                            const intensity = max > 0 ? value / max : 0;
+                            return `rgba(79, 70, 229, ${0.2 + intensity * 0.8})`;
+                        })
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.parsed.y} uploads`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Render top events table
+        function renderTopEventsTable(events) {
+            const tbody = document.getElementById('topEventsBody');
+            
+            if (events.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--gray);">No completed events yet</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = events.map(event => `
+                <tr>
+                    <td style="font-weight: 600;">${event.eventName}</td>
+                    <td>${event.guestCount}</td>
+                    <td>${event.photoCount}</td>
+                    <td>${event.totalMatches}</td>
+                    <td>${event.avgMatchesPerGuest}</td>
+                    <td>
+                        <span class="badge badge-${event.status === 'completed' ? 'success' : event.status === 'processing' ? 'warning' : 'primary'}">
+                            ${event.status}
+                        </span>
+                    </td>
+                    <td>${new Date(event.createdAt).toLocaleDateString()}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Load analytics on page load
+        document.addEventListener('DOMContentLoaded', loadAnalytics);
+    </script>
+</body>
+</html>

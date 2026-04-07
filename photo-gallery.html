@@ -1,19 +1,67 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="/public/images/favicon.png">
     <title>Photo Gallery - PhotoFlow Pro</title>
     <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #818cf8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            
+            /* Light theme (default) */
+            --bg-primary: #ffffff;
+            --bg-secondary: #f1f5f9;
+            --bg-gradient-start: #667eea;
+            --bg-gradient-end: #764ba2;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --card-bg: #ffffff;
+            --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            --nav-bg: #f8fafc;
+            --guest-card-bg: #f8fafc;
+            --guest-card-border: #e2e8f0;
+            --stat-gradient-start: #667eea;
+            --stat-gradient-end: #764ba2;
+            --modal-bg: rgba(0, 0, 0, 0.9);
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-gradient-start: #4338ca;
+            --bg-gradient-end: #6366f1;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: #334155;
+            --card-bg: #1e293b;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            --nav-bg: #0f172a;
+            --guest-card-bg: #334155;
+            --guest-card-border: #475569;
+            --stat-gradient-start: #4338ca;
+            --stat-gradient-end: #7c3aed;
+            --modal-bg: rgba(0, 0, 0, 0.95);
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
             min-height: 100vh;
             padding: 20px;
         }
@@ -21,9 +69,9 @@
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            background: white;
+            background: var(--card-bg);
             border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            box-shadow: var(--card-shadow);
             overflow: hidden;
         }
 
@@ -48,8 +96,8 @@
 
         .navigation {
             padding: 20px 30px;
-            background: #f8fafc;
-            border-bottom: 1px solid #e2e8f0;
+            background: var(--nav-bg);
+            border-bottom: 1px solid var(--border-color);
         }
 
         .nav-buttons {
@@ -75,8 +123,9 @@
         }
 
         .nav-btn.secondary {
-            background: #e2e8f0;
-            color: #475569;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
         }
 
         .nav-btn:hover {
@@ -94,10 +143,10 @@
 
         .section-title {
             font-size: 1.8rem;
-            color: #1e293b;
+            color: var(--text-primary);
             margin-bottom: 20px;
             padding-bottom: 10px;
-            border-bottom: 3px solid #4f46e5;
+            border-bottom: 3px solid var(--primary);
             display: inline-block;
         }
 
@@ -109,8 +158,8 @@
         }
 
         .guest-card {
-            background: #f8fafc;
-            border: 2px solid #e2e8f0;
+            background: var(--guest-card-bg);
+            border: 2px solid var(--guest-card-border);
             border-radius: 12px;
             padding: 20px;
             cursor: pointer;
@@ -118,20 +167,20 @@
         }
 
         .guest-card:hover {
-            border-color: #4f46e5;
+            border-color: var(--primary);
             transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.1);
+            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.2);
         }
 
         .guest-email {
             font-size: 1.1rem;
             font-weight: 600;
-            color: #4f46e5;
+            color: var(--primary);
             margin-bottom: 10px;
         }
 
         .photo-count {
-            color: #64748b;
+            color: var(--text-secondary);
             font-size: 0.9rem;
         }
 
@@ -200,7 +249,7 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.9);
+            background-color: var(--modal-bg);
         }
 
         .modal-content {
@@ -237,7 +286,7 @@
         }
 
         .stat-card {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, var(--stat-gradient-start), var(--stat-gradient-end));
             color: white;
             padding: 20px;
             border-radius: 10px;
@@ -253,13 +302,18 @@
         .loading {
             text-align: center;
             padding: 40px;
-            color: #64748b;
+            color: var(--text-secondary);
         }
 
         .empty-state {
             text-align: center;
             padding: 60px 20px;
-            color: #64748b;
+            color: var(--text-secondary);
+        }
+
+        .empty-state h3 {
+            color: var(--text-primary);
+            margin-bottom: 10px;
         }
 
         .empty-state img {
@@ -280,10 +334,11 @@
         </div>
 
         <div class="navigation">
-            <div class="nav-buttons">
-                <a href="index1.html" class="nav-btn secondary">← Back to Dashboard</a>
+                <div class="nav-buttons">
+                    <a id="backToDashboardBtn" href="index1.html" class="nav-btn secondary">← Back to Dashboard</a>
+                <a href="analytics.html" class="nav-btn secondary">📊 Analytics</a>
                 <button class="nav-btn primary" onclick="refreshGallery()">🔄 Refresh</button>
-                <button class="nav-btn secondary" onclick="downloadAll()">📥 Download All</button>
+                <button id="processBtn" class="nav-btn primary" onclick="processEvent()" style="display:none;">🎯 Process Event</button>
             </div>
         </div>
 
@@ -319,8 +374,8 @@
                 <h2 class="section-title">🤳 Selfies</h2>
                 <div id="selfieHeader" style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
                     <button class="nav-btn secondary" onclick="hideSelfieViewer()">← Back to Selfie Guests</button>
-                    <div id="selfieEmailLabel" style="font-weight:600; color:#4f46e5;"></div>
-                    <div id="selfieCountLabel" style="color:#64748b;"></div>
+                    <div id="selfieEmailLabel" style="font-weight:600; color:var(--primary);"></div>
+                    <div id="selfieCountLabel" style="color:var(--text-secondary);"></div>
                 </div>
                 <div id="selfiePhotos" class="photo-grid"></div>
             </div>
@@ -338,10 +393,9 @@
                 <h2 class="section-title">📁 Guest Collection</h2>
                 <div id="guestHeader" style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
                     <button class="nav-btn secondary" onclick="hideGuestViewer()">← Back to Guests</button>
-                    <div id="guestEmailLabel" style="font-weight:600; color:#4f46e5;"></div>
-                    <div id="guestCountLabel" style="color:#64748b;"></div>
+                    <div id="guestEmailLabel" style="font-weight:600; color:var(--primary);"></div>
+                    <div id="guestCountLabel" style="color:var(--text-secondary);"></div>
                     <div style="flex:1"></div>
-                    <a id="guestDownloadBtn" class="nav-btn primary" href="#">📥 Download ZIP</a>
                 </div>
                 <div id="guestPhotos" class="photo-grid"></div>
             </div>
@@ -375,6 +429,15 @@
         }
 
         // Load gallery data
+        let isNavigatingAway = false;
+
+        // If the user navigates away (Back to Dashboard), mark flag to suppress navigation-related alerts
+        window.addEventListener('beforeunload', () => { isNavigatingAway = true; });
+        document.addEventListener('DOMContentLoaded', () => {
+            const back = document.getElementById('backToDashboardBtn');
+            if (back) back.addEventListener('click', () => { isNavigatingAway = true; });
+        });
+
         async function loadGallery() {
             currentEvent = getEventName();
             document.getElementById('eventName').textContent = currentEvent.replace(/_/g, ' ').toUpperCase();
@@ -389,6 +452,9 @@
                 document.getElementById('totalMatches').textContent = stats.totalMatches || 0;
                 document.getElementById('eventStats').textContent = 
                     `${stats.totalPhotos} photos • ${stats.totalGuests} guests • ${stats.totalMatches} matches found`;
+
+                // Update process button visibility
+                updateProcessButtonVisibility(stats.totalPhotos || 0, stats.totalGuests || 0);
 
                 // Load guest folders
                 await loadGuestFolders();
@@ -408,7 +474,7 @@
         // Load guest folders and their photos
         async function loadGuestFolders() {
             try {
-                const response = await fetch(`/api/guest-folders/${currentEvent}`);
+                const response = await fetch(`/api/guests/${currentEvent}`);
                 const guests = await response.json();
 
                 const container = document.getElementById('guestFolders');
@@ -424,11 +490,11 @@
                 }
 
                 container.innerHTML = guests.map(guest => `
-                    <div class="guest-card" onclick="viewGuestPhotos('${guest.email}')">
+                    <div class="guest-card">
                         <div class="guest-email">📧 ${guest.email}</div>
-                        <div class="photo-count">📸 ${guest.photoCount} matched photos</div>
-                        <div style="margin-top: 10px; font-size: 0.8rem; color: #64748b;">
-                            Click to view collection
+                        <div class="photo-count">📸 ${guest.matchedCount} matched photos</div>
+                        <div style="margin-top: 10px; font-size: 0.8rem; color: var(--text-secondary);">
+                            Matching completed
                         </div>
                     </div>
                 `).join('');
@@ -443,7 +509,7 @@
         // Load selfie guests
         async function loadSelfieGuests() {
             try {
-                const res = await fetch(`/api/selfie-guests/${currentEvent}`);
+                const res = await fetch(`/api/guest-selfies/${currentEvent}`);
                 const guests = await res.json();
                 const container = document.getElementById('selfieGuests');
 
@@ -457,10 +523,10 @@
                     return;
                 }
                 container.innerHTML = guests.map(g => `
-                    <div class="guest-card" onclick="viewSelfies('${g.email}')">
+                    <div class="guest-card">
                         <div class="guest-email">📧 ${g.email}</div>
                         <div class="photo-count">🤳 ${g.selfieCount} selfie(s)</div>
-                        <div style="margin-top: 10px; font-size: 0.8rem; color: #64748b;">Click to view selfies</div>
+                        <div style="margin-top: 10px; font-size: 0.8rem; color: var(--text-secondary);">Selfies uploaded</div>
                     </div>
                 `).join('');
             } catch (e) {
@@ -469,31 +535,10 @@
             }
         }
 
-        // View selfies for a guest
+        // View selfies for a guest - DISABLED (no image display)
         async function viewSelfies(guestEmail) {
-            try {
-                const res = await fetch(`/api/selfies/${currentEvent}/${encodeURIComponent(guestEmail)}`);
-                const photos = await res.json();
-                const viewer = document.getElementById('selfieViewer');
-                const grid = document.getElementById('selfiePhotos');
-                document.getElementById('selfieEmailLabel').textContent = `📧 ${guestEmail}`;
-                document.getElementById('selfieCountLabel').textContent = `• ${photos.length} selfie(s)`;
-                if (!photos || photos.length === 0) {
-                    grid.innerHTML = `<div class="empty-state"><h3>No selfies uploaded</h3></div>`;
-                } else {
-                    grid.innerHTML = photos.map(p => `
-                        <div class="photo-item" onclick="openModal('${p.path}', '${p.name}')">
-                            <img src="${p.path}" alt="${p.name}" loading="lazy">
-                            <div class="photo-overlay">${p.name}</div>
-                        </div>
-                    `).join('');
-                }
-                viewer.style.display = 'block';
-                viewer.scrollIntoView({ behavior: 'smooth' });
-            } catch (e) {
-                console.error('Error loading selfies:', e);
-                alert('Failed to load selfies');
-            }
+            // Selfie images are not displayed - only counts
+            alert('Selfie images are stored in cloud. Only counts are displayed.');
         }
 
         function hideSelfieViewer() {
@@ -536,45 +581,10 @@
             }
         }
 
-        // View specific guest photos
+        // View specific guest photos - DISABLED (no image display)
         async function viewGuestPhotos(guestEmail) {
-            try {
-                const response = await fetch(`/api/guest-photos/${currentEvent}/${encodeURIComponent(guestEmail)}`);
-                const photos = await response.json();
-
-                // Show inline guest viewer
-                const viewer = document.getElementById('guestViewer');
-                const grid = document.getElementById('guestPhotos');
-                const emailLabel = document.getElementById('guestEmailLabel');
-                const countLabel = document.getElementById('guestCountLabel');
-                const dlBtn = document.getElementById('guestDownloadBtn');
-
-                emailLabel.textContent = `📧 ${guestEmail}`;
-                countLabel.textContent = `• ${photos.length} matched photos`;
-                dlBtn.href = `/download/${currentEvent}/${encodeURIComponent(guestEmail)}`;
-
-                if (photos.length === 0) {
-                    grid.innerHTML = `<div class="empty-state"><h3>No matched photos yet</h3></div>`;
-                } else {
-                    grid.innerHTML = photos.map(photo => `
-                        <div class="photo-item" onclick="openModal('${photo.path}', '${photo.name}')">
-                            <div class="photo-actions">
-                                <button class="action-btn soft" title="Remove only from this guest's collection" onclick="deleteGuestPhoto(event, '${guestEmail}', '${photo.name}', false)">Hide</button>
-                                <button class="action-btn hard" title="Delete from event and all guests" onclick="deleteGuestPhoto(event, '${guestEmail}', '${photo.name}', true)">Delete</button>
-                            </div>
-                            <img src="${photo.path}" alt="${photo.name}" loading="lazy">
-                            <div class="photo-overlay">${photo.name}</div>
-                        </div>
-                    `).join('');
-                }
-
-                viewer.style.display = 'block';
-                document.getElementById('guestViewer').scrollIntoView({ behavior: 'smooth' });
-
-            } catch (error) {
-                console.error('Error loading guest photos:', error);
-                alert('Error loading guest photos');
-            }
+            // Guest photos are not displayed - only counts
+            alert('Matched photos are stored in cloud. Only counts are displayed.');
         }
 
         function hideGuestViewer() {
@@ -601,11 +611,6 @@
         // Refresh gallery
         function refreshGallery() {
             loadGallery();
-        }
-
-        // Download all photos
-        function downloadAll() {
-            window.location.href = `/api/download-event/${currentEvent}`;
         }
 
         // Delete from guest collection
@@ -668,6 +673,147 @@
             alert(message);
         }
 
+        // Process event (face matching)
+        let processingPollInterval = null;
+        
+        async function processEvent() {
+            const btn = document.getElementById('processBtn');
+            btn.disabled = true;
+            btn.textContent = '🔄 Processing...';
+            btn.className = 'nav-btn secondary';
+            
+            try {
+                const response = await fetch(`/api/process-event/${currentEvent}`, {
+                    method: 'POST',
+                    headers: (typeof getAuthHeaders === 'function') ? getAuthHeaders() : {}
+                });
+
+                let result = {};
+                try { result = await response.json(); } catch (_) { /* non-json or no body */ }
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Processing failed');
+                }
+
+                // Only show the success alert if the user is still on the page
+                if (!isNavigatingAway) {
+                    alert('✅ Event processing started! This will continue in the background. You can navigate away and come back later.');
+                }
+
+                // Start polling for status updates
+                startProcessingStatusPoll();
+
+            } catch (error) {
+                console.error('Error processing event:', error);
+                // Suppress fetch/abort errors if the user navigated away
+                if (!isNavigatingAway) {
+                    alert('❌ Failed to process event: ' + (error && error.message ? error.message : String(error)));
+                    btn.disabled = false;
+                    btn.textContent = '🎯 Process Event';
+                    btn.className = 'nav-btn primary';
+                }
+            }
+        }
+        
+        // Poll for processing status
+        function startProcessingStatusPoll() {
+            if (processingPollInterval) {
+                clearInterval(processingPollInterval);
+            }
+            
+            processingPollInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/api/events`);
+                    const events = await response.json();
+                    const eventData = events.find(e => e.eventName === currentEvent);
+                    
+                    if (eventData) {
+                        const btn = document.getElementById('processBtn');
+                        
+                        if (eventData.status === 'processing') {
+                            btn.disabled = true;
+                            btn.textContent = '🔄 Processing...';
+                            btn.className = 'nav-btn secondary';
+                            btn.style.display = 'inline-block';
+                        } else if (eventData.status === 'completed') {
+                            // Processing completed
+                            clearInterval(processingPollInterval);
+                            processingPollInterval = null;
+                            
+                            // Refresh gallery to show matches
+                            loadGallery();
+                            
+                            // Hide or update button
+                            btn.style.display = 'none';
+                            
+                            // Show completion notification
+                            if (document.hasFocus()) {
+                                alert('✅ Event processing completed successfully!');
+                            }
+                        } else {
+                            // Status is active or other
+                            clearInterval(processingPollInterval);
+                            processingPollInterval = null;
+                            btn.disabled = false;
+                            btn.textContent = '🎯 Process Event';
+                            btn.className = 'nav-btn primary';
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error polling status:', error);
+                }
+            }, 3000); // Poll every 3 seconds
+        }
+        
+        // Stop polling when leaving the page
+        window.addEventListener('beforeunload', () => {
+            if (processingPollInterval) {
+                clearInterval(processingPollInterval);
+            }
+        });
+
+        // Check if process button should be visible
+        async function updateProcessButtonVisibility(totalPhotos, totalGuests) {
+            const processBtn = document.getElementById('processBtn');
+            
+            try {
+                // Check if event is currently processing
+                const response = await fetch(`/api/events`);
+                const events = await response.json();
+                const currentEventData = events.find(e => e.eventName === currentEvent);
+                
+                if (currentEventData && currentEventData.status === 'processing') {
+                    // Show processing status instead of button
+                    processBtn.style.display = 'inline-block';
+                    processBtn.disabled = true;
+                    processBtn.textContent = '🔄 Processing...';
+                    processBtn.className = 'nav-btn secondary';
+                    
+                    // Start polling for status updates
+                    startProcessingStatusPoll();
+                    return;
+                }
+                
+                // Show process button if we have both photos and guests and not already processed
+                if (totalPhotos > 0 && totalGuests > 0) {
+                    processBtn.style.display = 'inline-block';
+                    processBtn.disabled = false;
+                    processBtn.textContent = '🎯 Process Event';
+                    processBtn.className = 'nav-btn primary';
+                } else {
+                    processBtn.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error checking event status:', error);
+                // Fallback to original logic
+                if (totalPhotos > 0 && totalGuests > 0) {
+                    processBtn.style.display = 'inline-block';
+                } else {
+                    processBtn.style.display = 'none';
+                }
+            }
+        }
+
         // Event listeners
         document.addEventListener('DOMContentLoaded', loadGallery);
         
@@ -685,6 +831,59 @@
                 closeModal();
             }
         });
+
+        // Theme Management
+        function applyTheme() {
+            const savedTheme = localStorage.getItem('photoflow_theme') || 'light';
+            let themeToApply = savedTheme;
+            
+            if (savedTheme === 'auto') {
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                themeToApply = prefersDark ? 'dark' : 'light';
+            }
+            
+            document.documentElement.setAttribute('data-theme', themeToApply);
+        }
+
+        // Apply theme on page load
+        applyTheme();
+
+        // Listen for system theme changes when auto mode is enabled
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+            const savedTheme = localStorage.getItem('photoflow_theme');
+            if (savedTheme === 'auto') {
+                applyTheme();
+            }
+        });
+
+        // Listen for theme changes from settings page (via storage events)
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'photoflow_theme') {
+                applyTheme();
+            }
+        });
+    </script>
+    <script>
+        // Remove any download buttons that might appear dynamically
+        function removeDownloadButtons() {
+            // Check every second for download buttons and remove them
+            setInterval(() => {
+                const downloadButtons = document.querySelectorAll('button, a, div')
+                    .filter(el => 
+                        el.textContent.includes('Download') || 
+                        el.textContent.includes('download') ||
+                        (el.onclick && el.onclick.toString().includes('download'))
+                    );
+                
+                downloadButtons.forEach(btn => {
+                    console.log('Removing download button:', btn);
+                    btn.remove();
+                });
+            }, 1000);
+        }
+
+        // Start removing download buttons when the page loads
+        document.addEventListener('DOMContentLoaded', removeDownloadButtons);
     </script>
 </body>
 </html>

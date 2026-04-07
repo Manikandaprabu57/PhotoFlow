@@ -4,17 +4,30 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const path = require("path");
 const fs = require("fs");
+const os = require("os");
 const multer = require("multer");
 const nodemailer = require("nodemailer");
 const QRCode = require("qrcode");
 const archiver = require("archiver");
 const { spawn, spawnSync } = require("child_process");
 require("dotenv").config();
+const jwt = require('jsonwebtoken');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+// Prevent caching for HTML files
+app.use((req, res, next) => {
+  if (req.path.endsWith('.html')) {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    res.set('Surrogate-Control', 'no-store');
+  }
+  next();
+});
+
 app.use(express.static(path.join(__dirname))); // Serve static files (HTML/CSS)
 
 // Detect an available Python command once at startup
@@ -49,7 +62,8 @@ function detectPythonCommand() {
 }
 
 const PYTHON = detectPythonCommand();
-const PROCESS_TIMEOUT_MS = Number(process.env.PROCESS_TIMEOUT_MS || 15 * 60 * 1000); // 15 min default
+// Set timeout to 0 for unlimited processing time (no timeout)
+const PROCESS_TIMEOUT_MS = Number(process.env.PROCESS_TIMEOUT_MS || 0); // 15 min default
 
 // 📦 MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI, {
@@ -113,6 +127,31 @@ transporter.verify((error, success) => {
     console.log('✅ Email transporter is ready to send messages');
   }
 });
+
+// JWT configuration for simple token-based auth (used after OTP verification)
+const JWT_SECRET = process.env.JWT_SECRET || 'dev_jwt_secret_change_this_in_production';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+
+function authenticateToken(req, res, next) {
+  // Prefer Authorization: Bearer <token>
+  const auth = req.headers['authorization'];
+  if (!auth) {
+    return res.status(401).json({ error: 'Authorization token required' });
+  }
+  const parts = auth.split(' ');
+  if (parts.length !== 2 || parts[0] !== 'Bearer') {
+    return res.status(401).json({ error: 'Invalid authorization format. Use: Bearer <token>' });
+  }
+  const token = parts[1];
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    req.user = { email: payload.email };
+    next();
+  } catch (err) {
+    console.error('JWT verification failed:', err.message);
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+}
 
 // 📁 Events directory
 const EVENTS_DIR = path.join(__dirname, 'events');
@@ -191,12 +230,18 @@ const otps = {};
 // ================= USER AUTH ROUTES =================
 
 // 📝 Register route
-app.post("/api/register", async (req, res) => {
-  const { name, email, phone } = req.body;
-  const existing = await User.findOne({ $or: [{ email }, { phone }] });
-  if (existing) return res.status(400).json({ error: "User already exists" });
-  await User.create({ name, email, phone });
-  res.json({ message: "Registered successfully" });
+// Return only events for the authenticated photographer
+app.get("/api/events", authenticateToken, async (req, res) => {
+  try {
+    const photographerEmail = req.user && req.user.email;
+    if (!photographerEmail) return res.json([]);
+
+    const events = await Event.find({ photographerEmail }).sort({ createdAt: -1 });
+    res.json(events);
+  } catch (error) {
+    console.error('Failed to fetch events:', error);
+    res.status(500).json({ error: "Failed to fetch events" });
+  }
 });
 
 // 📩 Send OTP route (only email)
@@ -235,7 +280,15 @@ app.post("/api/verify-otp", (req, res) => {
   const { identifier, otp } = req.body;
   if (otps[identifier] === otp) {
     delete otps[identifier]; // clear after success
-    return res.json({ success: true });
+
+    // Issue a JWT so the client can authenticate subsequent requests
+    try {
+      const token = jwt.sign({ email: identifier }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+      return res.json({ success: true, token, email: identifier });
+    } catch (err) {
+      console.error('Failed to sign JWT:', err);
+      return res.status(500).json({ success: false, message: 'Failed to generate auth token' });
+    }
   }
   res.status(400).json({ message: "Invalid OTP." });
 });
@@ -243,11 +296,13 @@ app.post("/api/verify-otp", (req, res) => {
 // ================= EVENT MANAGEMENT ROUTES =================
 
 // 📅 Create new event
-app.post("/api/create-event", async (req, res) => {
-  const { eventName, photographerEmail } = req.body;
+// Create new event - requires authentication. Photographer email is taken from the authenticated user.
+app.post("/api/create-event", authenticateToken, async (req, res) => {
+  const { eventName } = req.body;
+  const photographerEmail = req.user && req.user.email;
 
   if (!eventName || !photographerEmail) {
-    return res.status(400).json({ error: "Event name and photographer email required" });
+    return res.status(400).json({ error: "Event name and authenticated photographer email required" });
   }
 
   try {
@@ -271,7 +326,7 @@ app.post("/api/create-event", async (req, res) => {
     const qrCodePath = path.join(eventPath, 'qr-code.png');
     await QRCode.toFile(qrCodePath, qrCodeData);
 
-    // Save event to database
+    // Save event to database with authenticated photographer email
     const event = await Event.create({
       eventName,
       photographerEmail,
@@ -290,20 +345,21 @@ app.post("/api/create-event", async (req, res) => {
   }
 });
 
-// 📋 Get all events for photographer
-app.get("/api/events", async (req, res) => {
-  try {
-    const events = await Event.find().sort({ createdAt: -1 });
-    res.json(events);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch events" });
-  }
-});
+// Note: Duplicate unprotected GET /api/events removed. Use the authenticated route above to
+// ensure only the event owner can see their events.
 
 // �️ Permanently delete an event (DB + filesystem)
-app.delete("/api/events/:eventName", async (req, res) => {
+// Delete an event - only the event owner (authenticated) may delete their event
+app.delete("/api/events/:eventName", authenticateToken, async (req, res) => {
   const { eventName } = req.params;
   try {
+    const event = await Event.findOne({ eventName });
+    if (!event) return res.status(404).json({ error: 'Event not found' });
+
+    if (event.photographerEmail !== req.user.email) {
+      return res.status(403).json({ error: 'Not authorized to delete this event' });
+    }
+
     // Remove event and related guests from DB
     const dbResult = await Promise.all([
       Event.deleteOne({ eventName }),
@@ -330,7 +386,7 @@ app.delete("/api/events/:eventName", async (req, res) => {
 // 📤 Upload event photos (photographer) with explicit Multer error handling
 app.post("/api/upload-event-photos/:eventName", (req, res) => {
   console.log(`📤 Upload event photos request: eventName=${req.params.eventName}`);
-  eventUpload.array("photos", 2000)(req, res, async (err) => {
+  eventUpload.array("photos", 10000)(req, res, async (err) => {
     if (err) {
       // Multer error handling
       if (err.code === 'LIMIT_FILE_SIZE') {
@@ -447,6 +503,7 @@ app.post("/api/process-event/:eventName", async (req, res) => {
     // Update event status
     await Event.findOneAndUpdate({ eventName }, { status: 'processing' });
 
+            // Use the FAST face matching script for better performance
             const pythonScript = path.join(__dirname, 'deepface_match_fixed.py');
             const eventPath = path.join(EVENTS_DIR, eventName);
 
@@ -497,7 +554,8 @@ app.post("/api/process-event/:eventName", async (req, res) => {
             }
 
             console.log(`🐍 Starting Python process with: ${PYTHON.cmd} ${PYTHON.args.join(' ')}`);
-            console.log(`🐍 deepface_match_fixed.py args:`, scriptArgs);
+            console.log(`🚀 deepface_match_fixed.py args:`, scriptArgs);
+            console.log(`⚡ Using optimized face matching for faster processing...`);
 
             const pythonProcess = spawn(PYTHON.cmd, [...PYTHON.args, pythonScript, ...scriptArgs], {
                 cwd: __dirname,
@@ -505,11 +563,16 @@ app.post("/api/process-event/:eventName", async (req, res) => {
             });    let outputData = '';
     let errorData = '';
 
-    // Kill process if it hangs
-    const killTimer = setTimeout(async () => {
-      console.error(`⏱️ Python process timeout after ${PROCESS_TIMEOUT_MS}ms. Killing process...`);
-      try { pythonProcess.kill('SIGKILL'); } catch (_) {}
-    }, PROCESS_TIMEOUT_MS);
+    // Kill process if it hangs (only if timeout is set)
+    let killTimer = null;
+    if (PROCESS_TIMEOUT_MS > 0) {
+      killTimer = setTimeout(async () => {
+        console.error(`⏱️ Python process timeout after ${PROCESS_TIMEOUT_MS}ms. Killing process...`);
+        try { pythonProcess.kill('SIGKILL'); } catch (_) {}
+      }, PROCESS_TIMEOUT_MS);
+    } else {
+      console.log(`⏱️  No timeout set - process will run until completion`);
+    }
 
     pythonProcess.stdout.on('data', (data) => {
       outputData += data.toString();
@@ -522,7 +585,7 @@ app.post("/api/process-event/:eventName", async (req, res) => {
     // });
 
     pythonProcess.on('close', async (code) => {
-      clearTimeout(killTimer);
+      if (killTimer) clearTimeout(killTimer);
       console.log(`Python process exited with code: ${code}`);
       console.log(`Full output: ${outputData}`);
       
@@ -650,16 +713,26 @@ async function generateZipFilesAndSendEmails(eventName) {
           }
           
           // Verify zip contains the expected number of files
-          const { execSync } = require('child_process');
-          const zipContent = execSync(`powershell -Command "Compress-Archive -Path '${zipPath}' -ListContent"`, { encoding: 'utf8' });
           console.log(`✅ Zip created for ${guest.email}: ${zipPath} (${zipStats.size} bytes)`);
           console.log(`📋 Contains ${matchedPhotos.length} matched photos`);
 
-          // Send email with download link (optional)
+          // Simple zip verification by checking file size and existence
+          if (fs.existsSync(zipPath) && zipStats.size > 0) {
+            console.log(`✅ Zip file verified: ${path.basename(zipPath)} (${(zipStats.size / 1024 / 1024).toFixed(2)} MB)`);
+          } else {
+            throw new Error('Zip file verification failed');
+          }
+
+          // Send email with ZIP file attachment
           if (process.env.EMAIL_ENABLED && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-            console.log(`✉️ Sending email to ${guest.email} ...`);
-            await sendGuestEmail(guest.email, eventName, zipPath);
-            console.log(`✅ Email dispatch attempted to ${guest.email}`);
+            try {
+              console.log(`✉️ Sending email with ZIP attachment to ${guest.email} ...`);
+              await sendGuestEmail(guest.email, eventName, zipPath);
+              console.log(`✅ Email with ZIP attachment sent to ${guest.email}`);
+            } catch (emailError) {
+              console.error(`❌ Failed to send email to ${guest.email}:`, emailError.message);
+              // Continue processing other guests even if email fails
+            }
           } else {
             console.log(`✉️ Skipping email to ${guest.email}: EMAIL_ENABLED=${process.env.EMAIL_ENABLED}, creds present=${!!process.env.EMAIL_USER && !!process.env.EMAIL_PASS}`);
           }
@@ -682,17 +755,18 @@ async function generateZipFilesAndSendEmails(eventName) {
 // 📦 Create zip file
 function createZipFile(sourcePath, outputPath) {
   return new Promise((resolve, reject) => {
+    let tempDir = null;
+    let archive = null;
+    
     try {
       // Verify source path exists and has files
       if (!fs.existsSync(sourcePath)) {
-        reject(new Error(`Source path does not exist: ${sourcePath}`));
-        return;
+        throw new Error(`Source path does not exist: ${sourcePath}`);
       }
 
       const files = fs.readdirSync(sourcePath);
       if (files.length === 0) {
-        reject(new Error(`No files found in source path: ${sourcePath}`));
-        return;
+        throw new Error(`No files found in source path: ${sourcePath}`);
       }
 
       // Create output directory if it doesn't exist
@@ -702,7 +776,7 @@ function createZipFile(sourcePath, outputPath) {
       }
 
       // Create a temporary directory for organizing files
-      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'photoai-zip-'));
+      tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'photoai-zip-'));
       const photosDir = path.join(tempDir, 'matched_photos');
       fs.mkdirSync(photosDir);
 
@@ -727,43 +801,39 @@ function createZipFile(sourcePath, outputPath) {
         JSON.stringify(metadata, null, 2)
       );
 
-    const output = fs.createWriteStream(outputPath);
-    const archive = archiver('zip', { zlib: { level: 9 } });
+      const output = fs.createWriteStream(outputPath);
+      archive = archiver('zip', { zlib: { level: 9 } });
 
-    output.on('close', () => {
-      const stats = fs.statSync(outputPath);
-      console.log(`📦 Archive created: ${outputPath} (${stats.size} bytes)`);
-      
-      // Clean up temp directory
-      try {
-        fs.rmSync(tempDir, { recursive: true });
-      } catch (err) {
-        console.warn('⚠️ Failed to clean up temp directory:', err);
-      }
-      
-      resolve();
-    });
+      output.on('close', () => {
+        const stats = fs.statSync(outputPath);
+        console.log(`📦 Archive created: ${outputPath} (${stats.size} bytes)`);
+        
+        // Clean up temp directory
+        if (tempDir) {
+          try {
+            fs.rmSync(tempDir, { recursive: true });
+          } catch (err) {
+            console.warn('⚠️ Failed to clean up temp directory:', err);
+          }
+        }
+        
+        resolve();
+      });
 
-    archive.on('warning', (err) => {
-      if (err.code === 'ENOENT') {
-        console.warn('⚠️ Zip warning:', err);
-      } else {
-        reject(err);
-      }
-    });
+      archive.on('warning', (err) => {
+        if (err.code === 'ENOENT') {
+          console.warn('⚠️ Zip warning:', err);
+        } else {
+          throw err;
+        }
+      });
 
-    archive.on('error', (err) => {
-      console.error('❌ Zip error:', err);
-      try {
-        fs.rmSync(tempDir, { recursive: true });
-      } catch (cleanupErr) {
-        console.warn('⚠️ Failed to clean up temp directory after error:', cleanupErr);
-      }
-      reject(err);
-    });
+      archive.on('error', (err) => {
+        throw err;
+      });
 
-    // Add a README file
-    const readmeContent = `Thank you for using our photo matching service!
+      // Add a README file
+      const readmeContent = `Thank you for using our photo matching service!
 
 Event: ${metadata.event}
 Total Photos: ${metadata.totalPhotos}
@@ -773,45 +843,126 @@ This zip file contains:
 - matched_photos/: All photos that matched your selfie
 - metadata.json: Technical details about the matching process
 `;
-    archive.append(readmeContent, { name: 'README.txt' });
+      archive.append(readmeContent, { name: 'README.txt' });
 
-    archive.pipe(output);
-    // Add the organized content
-    archive.directory(tempDir, false);
-    archive.finalize();
+      // Pipe archive data to the output file
+      archive.pipe(output);
+
+      // Add the organized content to the archive
+      archive.directory(tempDir, false);
+
+      // Handle archive error before finalizing
+      archive.on('error', (err) => {
+        output.end();
+        if (tempDir) {
+          try {
+            fs.rmSync(tempDir, { recursive: true });
+          } catch (cleanupErr) {
+            console.warn('⚠️ Failed to clean up temp directory:', cleanupErr);
+          }
+        }
+        reject(err);
+      });
+
+      // Finalize the archive
+      archive.finalize();
     } catch (error) {
+      // Clean up temp directory on error
+      if (tempDir) {
+        try {
+          fs.rmSync(tempDir, { recursive: true });
+        } catch (cleanupErr) {
+          console.warn('⚠️ Failed to clean up temp directory after error:', cleanupErr);
+        }
+      }
+      // If archive was created, abort it
+      if (archive && typeof archive.abort === 'function') {
+        try {
+          archive.abort();
+        } catch (archiveErr) {
+          console.warn('⚠️ Failed to abort archive:', archiveErr);
+        }
+      }
       reject(error);
     }
-    archive.finalize();
   });
 }
 
 // 📧 Send email to guest
 async function sendGuestEmail(guestEmail, eventName, zipPath) {
-  const downloadLink = `${process.env.BASE_URL || 'http://localhost:5000'}/download/${eventName}/${guestEmail}`;
+  // Verify the ZIP file exists before sending
+  if (!fs.existsSync(zipPath)) {
+    console.error(`❌ ZIP file not found for email: ${zipPath}`);
+    throw new Error(`ZIP file not found: ${zipPath}`);
+  }
+
+  // Check file size (optional: warn if too large for email)
+  const stats = fs.statSync(zipPath);
+  const fileSizeMB = stats.size / (1024 * 1024);
+  if (fileSizeMB > 25) {
+    console.warn(`⚠️ Large ZIP file (${fileSizeMB.toFixed(2)} MB) for ${guestEmail} - may exceed email limits`);
+  }
+
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: guestEmail,
     subject: `Your Photos from ${eventName}`,
     html: `
       <h2>Your personalized photo album is ready!</h2>
-      <p>Thank you for attending ${eventName}. Your photos have been processed and are ready for download.</p>
-      <p><a href="${downloadLink}" style="background-color: #4f46e5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Download Your Photos</a></p>
-      <p>This link will be available for 30 days.</p>
-    `
+      <p>Thank you for attending ${eventName}. Your matched photos have been processed and are attached to this email as a ZIP file.</p>
+      <p><strong>File Size:</strong> ${fileSizeMB.toFixed(2)} MB</p>
+      <p>If you have trouble downloading or the file is too large, please contact the event organizer.</p>
+      <p>Best regards,<br>PhotoFlow Team</p>
+    `,
+    attachments: [
+      {
+        filename: `${eventName}_${guestEmail.replace('@', '_')}.zip`,
+        path: zipPath
+      }
+    ]
   };
   await transporter.sendMail(mailOptions);
 }
 
-// 📥 Download guest photos
+// 📥 Download guest photos - Enhanced with better error handling and logging
 app.get("/download/:eventName/:email", (req, res) => {
   const { eventName, email } = req.params;
   const zipPath = path.join(EVENTS_DIR, eventName, 'exports', `${email}.zip`);
 
+  console.log(`📥 Download request from ${req.ip} for event: ${eventName}, email: ${email}`);
+  console.log(`📂 Looking for zip at: ${zipPath}`);
+
   if (fs.existsSync(zipPath)) {
-    res.download(zipPath, `${eventName}_${email.replace('@', '_')}.zip`);
+    const stats = fs.statSync(zipPath);
+    console.log(`✅ Zip file found: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);
+    
+    // Set proper headers for cross-device download
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${eventName}_${email.replace('@', '_')}.zip"`);
+    res.setHeader('Content-Length', stats.size);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET');
+    
+    // Stream the file for better performance with large files
+    const fileStream = fs.createReadStream(zipPath);
+    fileStream.on('error', (error) => {
+      console.error(`❌ Error streaming file: ${error.message}`);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Error downloading file" });
+      }
+    });
+    
+    fileStream.pipe(res);
+    
+    console.log(`📤 Streaming zip file to client...`);
   } else {
-    res.status(404).json({ error: "Photos not found" });
+    console.error(`❌ Zip file not found at: ${zipPath}`);
+    res.status(404).json({ 
+      error: "Photos not found",
+      message: "The requested photo album could not be found. Please contact the event organizer.",
+      eventName,
+      email
+    });
   }
 });
 
@@ -1192,6 +1343,286 @@ app.get("/api/download-event/:eventName", async (req, res) => {
 // 🖼️ Serve event files statically
 app.use('/events', express.static(EVENTS_DIR));
 
+// ================= ANALYTICS API ROUTES =================
+
+// 📊 Get comprehensive analytics data (scoped to authenticated photographer)
+app.get("/api/analytics/overview", authenticateToken, async (req, res) => {
+  try {
+    const photographerEmail = req.user && req.user.email;
+    if (!photographerEmail) return res.status(401).json({ error: 'Unauthorized' });
+
+    const events = await Event.find({ photographerEmail });
+    const eventNames = events.map(e => e.eventName);
+    const guests = eventNames.length ? await Guest.find({ eventName: { $in: eventNames } }) : [];
+    
+    // Event Performance Metrics
+    const totalEvents = events.length;
+    const completedEvents = events.filter(e => e.status === 'completed').length;
+    const activeEvents = events.filter(e => e.status === 'active').length;
+    const processingEvents = events.filter(e => e.status === 'processing').length;
+    const successRate = totalEvents > 0 ? ((completedEvents / totalEvents) * 100).toFixed(1) : 0;
+    
+    // Guest Engagement Metrics
+    const totalGuests = guests.length;
+    const totalSelfies = guests.reduce((sum, g) => sum + g.selfieCount, 0);
+    const avgSelfiesPerGuest = totalGuests > 0 ? (totalSelfies / totalGuests).toFixed(1) : 0;
+    const guestsWithMatches = guests.filter(g => g.matchedPhotoCount > 0).length;
+    const participationRate = totalGuests > 0 ? ((guestsWithMatches / totalGuests) * 100).toFixed(1) : 0;
+    
+    // Email Delivery Stats
+    const emailsSent = guests.filter(g => g.emailSent).length;
+    const emailDeliveryRate = totalGuests > 0 ? ((emailsSent / totalGuests) * 100).toFixed(1) : 0;
+    
+    // Photo Statistics
+    const totalPhotos = events.reduce((sum, e) => sum + e.photoCount, 0);
+    const totalMatches = guests.reduce((sum, g) => sum + g.matchedPhotoCount, 0);
+    const avgMatchesPerGuest = totalGuests > 0 ? (totalMatches / totalGuests).toFixed(1) : 0;
+    
+    // Storage calculation (simplified - based on event count)
+    const storageUsed = {
+      cloudEvents: events.filter(e => e.useCloudStorage).length,
+      localEvents: events.filter(e => !e.useCloudStorage).length
+    };
+    
+    res.json({
+      eventPerformance: {
+        totalEvents,
+        completedEvents,
+        activeEvents,
+        processingEvents,
+        successRate: parseFloat(successRate)
+      },
+      guestEngagement: {
+        totalGuests,
+        totalSelfies,
+        avgSelfiesPerGuest: parseFloat(avgSelfiesPerGuest),
+        participationRate: parseFloat(participationRate),
+        guestsWithMatches
+      },
+      emailStats: {
+        emailsSent,
+        emailDeliveryRate: parseFloat(emailDeliveryRate)
+      },
+      photoStats: {
+        totalPhotos,
+        totalMatches,
+        avgMatchesPerGuest: parseFloat(avgMatchesPerGuest)
+      },
+      storage: storageUsed
+    });
+  } catch (error) {
+    console.error('Analytics overview error:', error);
+    res.status(500).json({ error: 'Failed to fetch analytics' });
+  }
+});
+
+// 📈 Get time-series data for charts
+app.get("/api/analytics/timeseries", authenticateToken, async (req, res) => {
+  try {
+    const { range = '30' } = req.query; // days
+    const daysBack = parseInt(range);
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - daysBack);
+    const photographerEmail = req.user && req.user.email;
+    if (!photographerEmail) return res.status(401).json({ error: 'Unauthorized' });
+
+    const events = await Event.find({ photographerEmail, createdAt: { $gte: startDate } }).sort({ createdAt: 1 });
+    const eventNames = events.map(e => e.eventName);
+    const guests = eventNames.length ? await Guest.find({ eventName: { $in: eventNames }, createdAt: { $gte: startDate } }).sort({ createdAt: 1 }) : [];
+    
+    // Group events by date
+    const eventsByDate = {};
+    events.forEach(event => {
+      const date = event.createdAt.toISOString().split('T')[0];
+      eventsByDate[date] = (eventsByDate[date] || 0) + 1;
+    });
+    
+    // Group guest uploads by date and hour
+    const guestsByDate = {};
+    const guestsByHour = Array(24).fill(0);
+    
+    guests.forEach(guest => {
+      const date = guest.createdAt.toISOString().split('T')[0];
+      guestsByDate[date] = (guestsByDate[date] || 0) + 1;
+      
+      const hour = guest.createdAt.getHours();
+      guestsByHour[hour] += 1;
+    });
+    
+    // Photo uploads by event
+    const photosByEvent = events.map(e => ({
+      eventName: e.eventName,
+      photoCount: e.photoCount,
+      guestCount: e.guestCount,
+      createdAt: e.createdAt
+    }));
+    
+    res.json({
+      eventsByDate,
+      guestsByDate,
+      guestsByHour,
+      photosByEvent,
+      range: daysBack
+    });
+  } catch (error) {
+    console.error('Timeseries error:', error);
+    res.status(500).json({ error: 'Failed to fetch timeseries data' });
+  }
+});
+
+// 🏆 Get top performing events
+app.get("/api/analytics/top-events", authenticateToken, async (req, res) => {
+  try {
+    const { limit = 10 } = req.query;
+    const photographerEmail = req.user && req.user.email;
+    if (!photographerEmail) return res.status(401).json({ error: 'Unauthorized' });
+
+    const events = await Event.find({ status: 'completed', photographerEmail })
+      .sort({ guestCount: -1 })
+      .limit(parseInt(limit));
+    
+    const eventStats = await Promise.all(events.map(async (event) => {
+      const guests = await Guest.find({ eventName: event.eventName });
+      const totalMatches = guests.reduce((sum, g) => sum + g.matchedPhotoCount, 0);
+      
+      return {
+        eventName: event.eventName,
+        guestCount: event.guestCount,
+        photoCount: event.photoCount,
+        totalMatches,
+        avgMatchesPerGuest: event.guestCount > 0 ? (totalMatches / event.guestCount).toFixed(1) : 0,
+        createdAt: event.createdAt,
+        status: event.status
+      };
+    }));
+    
+    res.json(eventStats);
+  } catch (error) {
+    console.error('Top events error:', error);
+    res.status(500).json({ error: 'Failed to fetch top events' });
+  }
+});
+
+// 📸 Get popular photos (most matched)
+app.get("/api/analytics/popular-photos/:eventName", authenticateToken, async (req, res) => {
+  try {
+    const { eventName } = req.params;
+    const photographerEmail = req.user && req.user.email;
+    if (!photographerEmail) return res.status(401).json({ error: 'Unauthorized' });
+
+    const event = await Event.findOne({ eventName });
+    if (!event) return res.status(404).json([]);
+    if (event.photographerEmail !== photographerEmail) return res.status(403).json({ error: 'Not authorized to view analytics for this event' });
+
+    const matchedPath = path.join(EVENTS_DIR, eventName, 'matched');
+    
+    if (!fs.existsSync(matchedPath)) {
+      return res.json([]);
+    }
+    
+    // Count occurrences of each photo across all guest folders
+    const photoOccurrences = {};
+    
+    const guestFolders = fs.readdirSync(matchedPath).filter(item =>
+      fs.statSync(path.join(matchedPath, item)).isDirectory()
+    );
+    
+    guestFolders.forEach(guestFolder => {
+      const guestPath = path.join(matchedPath, guestFolder);
+      const photos = fs.readdirSync(guestPath).filter(file =>
+        /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(file)
+      );
+      
+      photos.forEach(photo => {
+        photoOccurrences[photo] = (photoOccurrences[photo] || 0) + 1;
+      });
+    });
+    
+    // Convert to array and sort by occurrences
+    const popularPhotos = Object.entries(photoOccurrences)
+      .map(([name, count]) => ({ name, matchCount: count }))
+      .sort((a, b) => b.matchCount - a.matchCount)
+      .slice(0, 20);
+    
+    res.json(popularPhotos);
+  } catch (error) {
+    console.error('Popular photos error:', error);
+    res.status(500).json({ error: 'Failed to fetch popular photos' });
+  }
+});
+
+// 📊 Get monthly comparison data
+app.get("/api/analytics/monthly-comparison", authenticateToken, async (req, res) => {
+  try {
+    const now = new Date();
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+    const photographerEmail = req.user && req.user.email;
+    if (!photographerEmail) return res.status(401).json({ error: 'Unauthorized' });
+
+    // Find event names owned by the photographer
+    const userEvents = await Event.find({ photographerEmail }).select('eventName createdAt');
+    const userEventNames = userEvents.map(e => e.eventName);
+
+    // This month
+    const thisMonthEvents = await Event.countDocuments({ photographerEmail, createdAt: { $gte: thisMonthStart } });
+    const thisMonthGuests = userEventNames.length ? await Guest.countDocuments({ eventName: { $in: userEventNames }, createdAt: { $gte: thisMonthStart } }) : 0;
+
+    // Last month
+    const lastMonthEvents = await Event.countDocuments({ photographerEmail, createdAt: { $gte: lastMonthStart, $lt: thisMonthStart } });
+    const lastMonthGuests = userEventNames.length ? await Guest.countDocuments({ eventName: { $in: userEventNames }, createdAt: { $gte: lastMonthStart, $lt: thisMonthStart } }) : 0;
+    
+    // Calculate growth
+    const eventGrowth = lastMonthEvents > 0 
+      ? (((thisMonthEvents - lastMonthEvents) / lastMonthEvents) * 100).toFixed(1)
+      : thisMonthEvents > 0 ? 100 : 0;
+    
+    const guestGrowth = lastMonthGuests > 0 
+      ? (((thisMonthGuests - lastMonthGuests) / lastMonthGuests) * 100).toFixed(1)
+      : thisMonthGuests > 0 ? 100 : 0;
+    
+    res.json({
+      thisMonth: {
+        events: thisMonthEvents,
+        guests: thisMonthGuests
+      },
+      lastMonth: {
+        events: lastMonthEvents,
+        guests: lastMonthGuests
+      },
+      growth: {
+        events: parseFloat(eventGrowth),
+        guests: parseFloat(guestGrowth)
+      }
+    });
+  } catch (error) {
+    console.error('Monthly comparison error:', error);
+    res.status(500).json({ error: 'Failed to fetch monthly comparison' });
+  }
+});
+
+// 📊 Get event status distribution for pie chart
+app.get("/api/analytics/status-distribution", authenticateToken, async (req, res) => {
+  try {
+    const photographerEmail = req.user && req.user.email;
+    if (!photographerEmail) return res.status(401).json({ error: 'Unauthorized' });
+
+    const events = await Event.find({ photographerEmail });
+    
+    const distribution = {
+      active: events.filter(e => e.status === 'active').length,
+      processing: events.filter(e => e.status === 'processing').length,
+      completed: events.filter(e => e.status === 'completed').length
+    };
+    
+    res.json(distribution);
+  } catch (error) {
+    console.error('Status distribution error:', error);
+    res.status(500).json({ error: 'Failed to fetch status distribution' });
+  }
+});
+
 // ================= MAIN ROUTES =================
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "login.html"));
@@ -1286,9 +1717,34 @@ app.post('/api/simple-match/run', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`⬆️  Max upload per file: ${MAX_UPLOAD_MB > 0 ? MAX_UPLOAD_MB + 'MB' : 'UNLIMITED (Multer cap disabled)'}`);
+
+// Get network IP address for display
+function getNetworkIP() {
+  const nets = os.networkInterfaces();
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      // Skip internal (i.e. 127.0.0.1) and non-IPv4 addresses
+      if (net.family === 'IPv4' && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+  return 'localhost';
+}
+
+const networkIP = getNetworkIP();
+
+// Listen on all network interfaces (0.0.0.0) to allow access from other devices
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`\n${'='.repeat(60)}`);
+  console.log(`🚀 PhotoFlow Server Started Successfully!`);
+  console.log(`${'='.repeat(60)}`);
+  console.log(`📍 Local Access:    http://localhost:${PORT}`);
+  console.log(`🌐 Network Access:  http://${networkIP}:${PORT}`);
+  console.log(`⬆️  Max Upload:      ${MAX_UPLOAD_MB > 0 ? MAX_UPLOAD_MB + 'MB' : 'UNLIMITED'} per file`);
+  console.log(`${'='.repeat(60)}`);
+  console.log(`\n💡 Share the network URL with other devices on the same WiFi`);
+  console.log(`📧 Make sure BASE_URL in .env is set to: http://${networkIP}:${PORT}\n`);
 });
 
 // Increase server timeouts for large uploads

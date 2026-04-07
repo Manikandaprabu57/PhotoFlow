@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="/public/images/favicon.png">
     <title>Photographer Event Manager</title>
     <style>
         :root {
@@ -14,16 +15,42 @@
             --success: #10b981;
             --warning: #f59e0b;
             --danger: #ef4444;
+            --info: #3b82f6;
+            
+            /* Light theme (default) */
+            --bg-primary: #ffffff;
+            --bg-secondary: #f1f5f9;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --card-bg: #ffffff;
+            --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            --card-shadow-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --sidebar-bg: #ffffff;
         }
+
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: #334155;
+            --card-bg: #1e293b;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            --card-shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+            --sidebar-bg: #0f172a;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
         body {
-            background-color: #f1f5f9;
-            color: var(--dark);
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
         }
         .dashboard {
             display: grid;
@@ -31,9 +58,10 @@
             min-height: 100vh;
         }
         .sidebar {
-            background-color: white;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            background-color: var(--sidebar-bg);
+            box-shadow: var(--card-shadow);
             padding: 1.5rem;
+            border-right: 1px solid var(--border-color);
         }
         .logo {
             display: flex;
@@ -63,9 +91,10 @@
             gap: 0.75rem;
             cursor: pointer;
             transition: all 0.2s;
+            color: var(--text-secondary);
         }
         .nav-item:hover {
-            background-color: #f1f5f9;
+            background-color: var(--bg-secondary);
         }
         .nav-item.active {
             background-color: var(--primary-light);
@@ -117,33 +146,44 @@
             background-color: var(--danger);
             color: white;
         }
+        .btn-info {
+            background-color: var(--info);
+            color: white;
+        }
+        .btn-secondary {
+            background-color: var(--text-secondary);
+            color: white;
+        }
         .btn-sm {
             padding: 0.25rem 0.5rem;
             font-size: 0.875rem;
         }
         .events-grid {
             display: grid;
+            /* restore original card size to keep the older compact look */
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 1.5rem;
         }
         .event-card {
-            background-color: white;
+            background-color: var(--card-bg);
             border-radius: 0.5rem;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            box-shadow: var(--card-shadow);
             overflow: hidden;
             transition: all 0.2s;
+            border: 1px solid var(--border-color);
         }
         .event-card:hover {
             transform: translateY(-3px);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--card-shadow-hover);
         }
         .event-card-header {
             padding: 1rem;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid var(--border-color);
         }
         .event-card-header h3 {
             font-size: 1.1rem;
             margin-bottom: 0.5rem;
+            color: var(--text-primary);
         }
         .event-status {
             display: inline-block;
@@ -154,16 +194,19 @@
             text-transform: uppercase;
         }
         .status-active {
-            background-color: #dbeafe;
-            color: #1e40af;
+            background-color: rgba(59, 130, 246, 0.2);
+            color: var(--info);
+            border: 1px solid var(--info);
         }
         .status-processing {
-            background-color: #fef3c7;
-            color: #92400e;
+            background-color: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+            border: 1px solid var(--warning);
         }
         .status-completed {
-            background-color: #d1fae5;
-            color: #065f46;
+            background-color: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+            border: 1px solid var(--success);
         }
         .event-card-body {
             padding: 1rem;
@@ -184,7 +227,7 @@
         }
         .stat-label {
             font-size: 0.75rem;
-            color: var(--gray);
+            color: var(--text-secondary);
             text-transform: uppercase;
         }
         .event-actions {
@@ -203,12 +246,13 @@
             background-color: rgba(0, 0, 0, 0.5);
         }
         .modal-content {
-            background-color: white;
+            background-color: var(--card-bg);
             margin: 15% auto;
             padding: 2rem;
             border-radius: 0.5rem;
             width: 90%;
             max-width: 500px;
+            border: 1px solid var(--border-color);
         }
         .modal-header {
             display: flex;
@@ -216,14 +260,18 @@
             align-items: center;
             margin-bottom: 1rem;
         }
+        .modal-header h3 {
+            color: var(--text-primary);
+        }
         .close {
-            color: #aaa;
+            color: var(--text-secondary);
             font-size: 28px;
             font-weight: bold;
             cursor: pointer;
+            transition: color 0.2s;
         }
         .close:hover {
-            color: black;
+            color: var(--text-primary);
         }
         .form-group {
             margin-bottom: 1rem;
@@ -232,39 +280,50 @@
             display: block;
             margin-bottom: 0.5rem;
             font-weight: 500;
+            color: var(--text-primary);
         }
         .form-group input {
             width: 100%;
             padding: 0.5rem;
-            border: 1px solid #d1d5db;
+            border: 1px solid var(--border-color);
             border-radius: 0.25rem;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
         }
         .qr-code-container {
             text-align: center;
             padding: 1rem;
-            border: 2px dashed #d1d5db;
+            border: 2px dashed var(--border-color);
             border-radius: 0.5rem;
             margin: 1rem 0;
+            background-color: var(--bg-secondary);
         }
         .qr-code-container img {
             max-width: 200px;
             margin-bottom: 1rem;
         }
         .upload-area {
-            border: 2px dashed #d1d5db;
+            border: 2px dashed var(--border-color);
             border-radius: 0.5rem;
             padding: 2rem;
             text-align: center;
             cursor: pointer;
             transition: all 0.2s;
+            background-color: var(--bg-secondary);
+            color: var(--text-secondary);
         }
         .upload-area:hover {
             border-color: var(--primary);
-            background-color: #f8fafc;
+            background-color: var(--bg-primary);
         }
         .upload-area.dragover {
             border-color: var(--primary);
-            background-color: #eff6ff;
+            background-color: var(--primary-light);
+            color: white;
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -273,29 +332,29 @@
     <div class="dashboard">
         <div class="sidebar">
             <div class="logo">
-                <img src="https://placehold.co/40x40?text=📸" alt="Logo">
+                <img src="/public/images/logo.png" alt="PhotoFlow Logo" onerror="this.src='https://placehold.co/40x40?text=📸'">
                 <h1>PhotoFlow Pro</h1>
             </div>
             <div class="nav-menu">
-                <div class="nav-item active">
+                <a href="index1.html" class="nav-item active">
                     <i class="fas fa-calendar-alt"></i>
                     <span>Events</span>
-                </div>
-                <div class="nav-item">
+                </a>
+                <a href="analytics.html" class="nav-item">
                     <i class="fas fa-chart-bar"></i>
                     <span>Analytics</span>
-                </div>
-                <div class="nav-item">
+                </a>
+                <a href="settings.html" class="nav-item">
                     <i class="fas fa-cog"></i>
                     <span>Settings</span>
-                </div>
+                </a>
             </div>
         </div>
         <div class="main-content">
             <div class="header">
                 <h2>Event Management</h2>
-                <div style="display:flex;align-items:center;gap:12px;color:#64748b;font-weight:600;">
-                    <i class="fas fa-user-circle" style="font-size:1.4rem;color:#4f46e5"></i>
+                <div style="display:flex;align-items:center;gap:12px;color:var(--text-secondary);font-weight:600;">
+                    <i class="fas fa-user-circle" style="font-size:1.4rem;color:var(--primary)"></i>
                     <span id="userDisplay">Welcome</span>
                 </div>
                 <button class="btn btn-primary" onclick="openCreateEventModal()">
@@ -362,10 +421,10 @@
                 <input type="file" id="photoInput" multiple accept="image/*" style="display: none;">
             </div>
             <div id="uploadProgress" style="display: none;">
-                <div style="background-color: #e5e7eb; border-radius: 0.5rem; overflow: hidden; margin-top: 1rem;">
+                <div style="background-color: var(--bg-secondary); border-radius: 0.5rem; overflow: hidden; margin-top: 1rem; border: 1px solid var(--border-color);">
                     <div id="progressBar" style="background-color: var(--primary); height: 20px; width: 0%; transition: width 0.3s;"></div>
                 </div>
-                <p id="progressText" style="text-align: center; margin-top: 0.5rem;">Uploading...</p>
+                <p id="progressText" style="text-align: center; margin-top: 0.5rem; color: var(--text-secondary);">Uploading...</p>
             </div>
         </div>
     </div>
@@ -389,7 +448,7 @@
                     <button class="btn btn-warning" id="captureBtn"><i class="fas fa-dot-circle"></i> Capture</button>
                     <button class="btn btn-success" id="uploadSelfieBtn"><i class="fas fa-cloud-upload-alt"></i> Upload</button>
                 </div>
-                <div id="selfieStatus" style="color:#64748b"></div>
+                <div id="selfieStatus" style="color:var(--text-secondary)"></div>
             </div>
         </div>
     </div>
@@ -407,81 +466,40 @@
         const who = getUserIdentifier();
         if (who) document.getElementById('userDisplay').textContent = `Hi, ${who}`;
         try {
-            const res = await fetch(`${API_BASE}/api/upload-config`);
+            const res = await fetch(`${API_BASE}/api/upload-config`, { headers: getAuthHeaders() });
             if (res.ok) uploadConfig = await res.json();
             console.log('Upload config:', uploadConfig);
         } catch (_) {}
     });
 
-    async function loadEvents() {
-        try {
-            const response = await fetch(`${API_BASE}/api/events`);
-            const events = await response.json();
-            displayEvents(events);
-        } catch (error) {
-            console.error('Error loading events:', error);
-        }
-    }
-
-    function displayEvents(events) {
-        const eventsGrid = document.getElementById('eventsGrid');
-        eventsGrid.innerHTML = '';
-
-        events.forEach(event => {
-            const eventCard = document.createElement('div');
-            eventCard.className = 'event-card';
-            eventCard.innerHTML = `
-                <div class="event-card-header" style="display:flex;justify-content:space-between;align-items:center">
-                    <div>
-                        <h3>${event.eventName}</h3>
-                        <span class="event-status status-${event.status}">${event.status}</span>
-                    </div>
-                    <button class="btn btn-danger btn-sm" title="Delete event" onclick="deleteEvent('${event.eventName}')">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-                <div class="event-card-body">
-                    <div class="event-stats">
-                        <div class="stat">
-                            <div class="stat-number">${event.photoCount}</div>
-                            <div class="stat-label">Photos</div>
-                        </div>
-                        <div class="stat">
-                            <div class="stat-number">${event.guestCount}</div>
-                            <div class="stat-label">Guests</div>
-                        </div>
-                    </div>
-                    <div class="event-actions">
-                        <button class="btn btn-primary btn-sm" onclick="showQrCode('${event.eventName}', '${event.qrCode}')">
-                            <i class="fas fa-qrcode"></i> QR Code
-                        </button>
-                        <button class="btn btn-success btn-sm" onclick="uploadPhotos('${event.eventName}')">
-                            <i class="fas fa-upload"></i> Upload Photos
-                        </button>
-                        <button class="btn btn-info btn-sm" onclick="viewGallery('${event.eventName}')">
-                            <i class="fas fa-images"></i> View Gallery
-                        </button>
-                        <div id="processArea-${event.eventName}"></div>
-                    </div>
-                </div>
-            `;
-            eventsGrid.appendChild(eventCard);
-        });
-        decoratePendingButtons(events);
-    }
-
     async function decoratePendingButtons(events) {
         for (const ev of events) {
             try {
-                const res = await fetch(`${API_BASE}/api/events/${encodeURIComponent(ev.eventName)}/pending-guests-count`);
-                if (!res.ok) continue;
-                const { pending } = await res.json();
                 const holder = document.getElementById(`processArea-${ev.eventName}`);
                 if (!holder) continue;
+
+                // Check if event is currently processing
+                if (ev.status === 'processing') {
+                    holder.innerHTML = `<button class="btn btn-secondary btn-sm" style="width:100%" disabled><i class="fas fa-spinner fa-spin"></i> Processing...</button>`;
+                    holder.style.visibility = 'visible';
+                    continue;
+                }
+
+                // Check for pending guests
+                const res = await fetch(`${API_BASE}/api/events/${encodeURIComponent(ev.eventName)}/pending-guests-count`, { headers: getAuthHeaders() });
+                if (!res.ok) {
+                    holder.innerHTML = '';
+                    holder.style.visibility = 'hidden';
+                    continue;
+                }
+                const { pending } = await res.json();
+
                 if (pending > 0) {
-                    holder.innerHTML = `<button class="btn btn-warning btn-sm" onclick="processEvent('${ev.eventName}')"><i class="fas fa-cog"></i> Process ${pending} new</button>`;
+                    holder.innerHTML = `<button class="btn btn-warning btn-sm" style="width:100%" onclick="processEvent('${ev.eventName}')"><i class="fas fa-cog"></i> Process ${pending} new guest${pending > 1 ? 's' : ''}</button>`;
+                    holder.style.visibility = 'visible';
                 } else {
                     holder.innerHTML = '';
+                    holder.style.visibility = 'hidden';
                 }
             } catch (_) {}
         }
@@ -492,11 +510,19 @@
         try { return localStorage.getItem('pfp_user_identifier'); } catch(e) { return ''; }
     }
 
+    // Authorization header helper
+    function getAuthHeaders() {
+        try {
+            const token = localStorage.getItem('userToken');
+            return token ? { 'Authorization': 'Bearer ' + token } : {};
+        } catch (e) { return {}; }
+    }
+
     // Delete event permanently
     async function deleteEvent(eventName) {
         if (!confirm(`Delete event "${eventName}" permanently? This cannot be undone.`)) return;
         try {
-            const res = await fetch(`${API_BASE}/api/events/${encodeURIComponent(eventName)}`, { method: 'DELETE' });
+            const res = await fetch(`${API_BASE}/api/events/${encodeURIComponent(eventName)}`, { method: 'DELETE', headers: getAuthHeaders() });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Failed to delete');
             alert('Event deleted');
@@ -553,7 +579,7 @@
         fd.append('email', email);
         try {
             document.getElementById('selfieStatus').textContent = 'Uploading...';
-            const res = await fetch(`${API_BASE}/api/upload-selfie/${encodeURIComponent(selfieTargetEvent)}`, { method: 'POST', body: fd });
+            const res = await fetch(`${API_BASE}/api/upload-selfie/${encodeURIComponent(selfieTargetEvent)}`, { method: 'POST', headers: getAuthHeaders(), body: fd });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Upload failed');
             document.getElementById('selfieStatus').textContent = '✅ Selfie uploaded';
@@ -598,7 +624,7 @@
         try {
             const response = await fetch(`${API_BASE}/api/create-event`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: Object.assign({ 'Content-Type': 'application/json' }, getAuthHeaders()),
                 body: JSON.stringify({ eventName, photographerEmail })
             });
 
@@ -719,6 +745,7 @@
             try {
                 const res = await fetch(`${API_BASE}/api/upload-event-photos/${currentEventName}`, {
                     method: 'POST',
+                    headers: getAuthHeaders(),
                     body: fd
                 });
                 const ct = res.headers.get('content-type') || '';
@@ -748,25 +775,23 @@
 
     // Process Event
     async function processEvent(eventName) {
-        if (!confirm(`Start face recognition processing for ${eventName}? This may take several minutes.`)) {
+        if (!confirm(`Start face recognition processing for ${eventName}? This will continue in the background.`)) {
             return;
         }
 
         try {
-            const response = await fetch(`${API_BASE}/api/process-event/${encodeURIComponent(eventName)}`, { method: 'POST' });
+            const response = await fetch(`${API_BASE}/api/process-event/${encodeURIComponent(eventName)}`, { method: 'POST', headers: getAuthHeaders() });
 
             const result = await response.json();
             if (response.ok) {
-                // Immediately remove the Process button for this event
-                const holder = document.getElementById(`processArea-${eventName}`);
-                if (holder) holder.innerHTML = '';
-                alert('Processing started! You will be notified when complete.');
+                alert('✅ Processing started! The event will continue processing in the background. Refresh the page to see updated status.');
+                // Reload events to show processing status
                 loadEvents();
             } else {
                 alert(result.error || 'Failed to start processing');
             }
         } catch (error) {
-            alert('Error starting processing');
+            alert('Error starting processing: ' + error.message);
             console.error(error);
         }
     }
@@ -804,7 +829,7 @@
 
     async function loadEvents() {
         try {
-            const response = await fetch(`${API_BASE}/api/events`);
+                const response = await fetch(`${API_BASE}/api/events`, { headers: getAuthHeaders() });
             const events = await response.json();
             const container = document.getElementById('eventsGrid');
             container.innerHTML = '';
@@ -834,29 +859,87 @@
                             <button class="btn btn-primary btn-sm" onclick="showQrCode('${event.eventName}')"><i class="fas fa-qrcode"></i> QR Code</button>
                             <button class="btn btn-success btn-sm" onclick="uploadPhotos('${event.eventName}')"><i class="fas fa-cloud-upload-alt"></i> Upload Photos</button>
                             <button class="btn btn-info btn-sm" onclick="viewGallery('${event.eventName}')"><i class="fas fa-images"></i> View Gallery</button>
-                            <div id="processArea-${event.eventName}"></div>
                         </div>
                     </div>
                 `;
-                container.appendChild(card);
+                // Create a horizontal wrapper so the process button sits outside the card to the right
+                const wrapper = document.createElement('div');
+                wrapper.className = 'event-wrapper';
+                wrapper.style.cssText = 'display:flex;flex-direction:row;align-items:flex-start;gap:12px;';
+
+                const processHolder = document.createElement('div');
+                processHolder.id = `processArea-${event.eventName}`;
+                // reserve space for the process control to avoid layout shifts when it appears
+                processHolder.style.cssText = 'min-width:120px;display:flex;align-items:flex-start;visibility:hidden;';
+
+                wrapper.appendChild(card);
+                wrapper.appendChild(processHolder);
+                container.appendChild(wrapper);
             });
             decoratePendingButtons(events);
 
-            // Start lightweight auto-refresh once to re-check pending guests
+            // Start auto-refresh to check for processing status updates
             if (!autoRefreshStarted) {
                 autoRefreshStarted = true;
                 setInterval(async () => {
                     try {
-                        const res = await fetch(`${API_BASE}/api/events`);
+                        const res = await fetch(`${API_BASE}/api/events`, { headers: getAuthHeaders() });
                         const evs = await res.json();
+                        
+                        // Check if any event status changed from processing to completed
+                        evs.forEach(ev => {
+                            const holder = document.getElementById(`processArea-${ev.eventName}`);
+                            if (!holder) return;
+
+                            const currentButton = holder.querySelector('button');
+                            const wasProcessing = currentButton && currentButton.textContent && currentButton.textContent.includes('Processing');
+
+                            if (wasProcessing && ev.status !== 'processing') {
+                                // Processing just completed, reload the whole page
+                                loadEvents();
+                            }
+                        });
+                        
+                        // Update button states
                         decoratePendingButtons(evs);
                     } catch (_) {}
-                }, 15000); // every 15s
+                }, 5000); // Check every 5 seconds for processing updates
             }
         } catch (e) {
             console.error('Failed to load events', e);
         }
     }
+
+    // Theme Management
+    function applyTheme() {
+        const savedTheme = localStorage.getItem('photoflow_theme') || 'light';
+        let themeToApply = savedTheme;
+        
+        if (savedTheme === 'auto') {
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            themeToApply = prefersDark ? 'dark' : 'light';
+        }
+        
+        document.documentElement.setAttribute('data-theme', themeToApply);
+    }
+
+    // Apply theme on page load
+    applyTheme();
+
+    // Listen for system theme changes when auto mode is enabled
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+        const savedTheme = localStorage.getItem('photoflow_theme');
+        if (savedTheme === 'auto') {
+            applyTheme();
+        }
+    });
+
+    // Listen for theme changes from settings page (via storage events)
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'photoflow_theme') {
+            applyTheme();
+        }
+    });
     </script>
 </body>
 </html>

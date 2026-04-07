@@ -92,6 +92,8 @@
         if (data.success) {
           // Save identifier for dashboard greeting
           try { localStorage.setItem('pfp_user_identifier', identifier); } catch (e) {}
+          // Replace any previous token and save new token if provided
+          try { localStorage.removeItem('userToken'); if (data.token) localStorage.setItem('userToken', data.token); } catch (e) {}
           alert("Login successful!");
           window.location.href = "index1.html"; // Redirect to dashboard
         } else {

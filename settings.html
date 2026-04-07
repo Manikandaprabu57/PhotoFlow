@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="/public/images/favicon.png">
+    <title>Settings - PhotoFlow Pro</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #818cf8;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --gray: #94a3b8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            
+            /* Light theme (default) */
+            --bg-primary: #ffffff;
+            --bg-secondary: #f1f5f9;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --card-bg: #ffffff;
+            --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            --sidebar-bg: #ffffff;
+            --input-bg: #ffffff;
+            --input-border: #d1d5db;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: #334155;
+            --card-bg: #1e293b;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            --sidebar-bg: #0f172a;
+            --input-bg: #334155;
+            --input-border: #475569;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        body {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            background-color: var(--sidebar-bg);
+            box-shadow: var(--card-shadow);
+            padding: 1.5rem;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+        }
+
+        .logo img {
+            width: 40px;
+            height: 40px;
+        }
+
+        .logo h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .nav-item {
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .nav-item:hover {
+            background-color: var(--bg-secondary);
+        }
+
+        .nav-item.active {
+            background-color: var(--primary-light);
+            color: white;
+        }
+
+        .nav-item i {
+            font-size: 1.25rem;
+        }
+
+        .main-content {
+            padding: 2rem;
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h2 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .settings-container {
+            max-width: 900px;
+        }
+
+        .settings-section {
+            background: var(--card-bg);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .section-header i {
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+
+        .section-header h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-info {
+            flex: 1;
+        }
+
+        .setting-info h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .setting-info p {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .setting-control {
+            margin-left: 1rem;
+        }
+
+        /* Theme Preview */
+        .theme-preview {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .theme-option {
+            flex: 1;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 2px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .theme-option:hover {
+            border-color: var(--primary);
+        }
+
+        .theme-option.active {
+            border-color: var(--primary);
+            background-color: rgba(79, 70, 229, 0.1);
+        }
+
+        .theme-option i {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .theme-option .light-icon {
+            color: #fbbf24;
+        }
+
+        .theme-option .dark-icon {
+            color: #6366f1;
+        }
+
+        .theme-option span {
+            display: block;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--input-border);
+            background-color: var(--input-bg);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        /* Button Styles */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #4338ca;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-primary:disabled {
+            background-color: var(--text-secondary);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Support Status Message */
+        .support-status {
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .support-status.show {
+            display: flex;
+        }
+
+        .support-status.success {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .support-status.error {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                display: none;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .theme-preview {
+                flex-direction: column;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="logo">
+                <img src="/public/images/logo.png" alt="PhotoFlow Logo" onerror="this.src='https://placehold.co/40x40?text=📸'">
+                <h1>PhotoFlow Pro</h1>
+            </div>
+            <div class="nav-menu">
+                <a href="index1.html" class="nav-item">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Events</span>
+                </a>
+                <a href="analytics.html" class="nav-item">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="settings.html" class="nav-item active">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h2>⚙️ Settings</h2>
+            </div>
+
+            <div class="settings-container">
+                <!-- Appearance Settings -->
+                <div class="settings-section">
+                    <div class="section-header">
+                        <i class="fas fa-palette"></i>
+                        <h3>Appearance</h3>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h4>Theme</h4>
+                            <p>Choose your preferred color theme</p>
+                        </div>
+                    </div>
+
+                    <div class="theme-preview">
+                        <div class="theme-option" id="lightTheme" onclick="setTheme('light')">
+                            <i class="fas fa-sun light-icon"></i>
+                            <span>Light Theme</span>
+                        </div>
+                        <div class="theme-option" id="darkTheme" onclick="setTheme('dark')">
+                            <i class="fas fa-moon dark-icon"></i>
+                            <span>Dark Theme</span>
+                        </div>
+                        <div class="theme-option" id="autoTheme" onclick="setTheme('auto')">
+                            <i class="fas fa-adjust" style="color: var(--primary);"></i>
+                            <span>Auto (System)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Help & Support -->
+                <div class="settings-section">
+                    <div class="section-header">
+                        <i class="fas fa-life-ring"></i>
+                        <h3>Help & Support</h3>
+                    </div>
+
+                    <div class="setting-item" style="flex-direction: column; align-items: flex-start;">
+                        <div class="setting-info" style="margin-bottom: 1rem;">
+                            <h4>Contact Support</h4>
+                            <p>Send us a message and we'll get back to you as soon as possible</p>
+                        </div>
+
+                        <form id="supportForm" style="width: 100%;">
+                            <div class="form-group">
+                                <label for="supportName">Your Name *</label>
+                                <input type="text" id="supportName" required placeholder="Enter your name">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="supportEmail">Your Email *</label>
+                                <input type="email" id="supportEmail" required placeholder="Enter your email">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="supportSubject">Subject *</label>
+                                <input type="text" id="supportSubject" required placeholder="Brief description of your issue">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="supportMessage">Message *</label>
+                                <textarea id="supportMessage" rows="6" required placeholder="Describe your issue or question in detail..."></textarea>
+                            </div>
+
+                            <div id="supportStatus" class="support-status"></div>
+
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i>
+                                Send Message
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load saved theme on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            applyTheme();
+            updateThemeUI();
+        });
+
+        // Theme Management
+        function setTheme(theme) {
+            localStorage.setItem('photoflow_theme', theme);
+            applyTheme();
+            updateThemeUI();
+        }
+
+        function applyTheme() {
+            const savedTheme = localStorage.getItem('photoflow_theme') || 'light';
+            
+            if (savedTheme === 'auto') {
+                // Use system preference
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+            } else {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            }
+        }
+
+        function updateThemeUI() {
+            const savedTheme = localStorage.getItem('photoflow_theme') || 'light';
+            
+            // Remove active class from all
+            document.querySelectorAll('.theme-option').forEach(opt => {
+                opt.classList.remove('active');
+            });
+            
+            // Add active class to selected
+            if (savedTheme === 'light') {
+                document.getElementById('lightTheme').classList.add('active');
+            } else if (savedTheme === 'dark') {
+                document.getElementById('darkTheme').classList.add('active');
+            } else {
+                document.getElementById('autoTheme').classList.add('active');
+            }
+        }
+
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            const savedTheme = localStorage.getItem('photoflow_theme');
+            if (savedTheme === 'auto') {
+                applyTheme();
+            }
+        });
+
+        // Support Form Handling
+        document.getElementById('supportForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const statusDiv = document.getElementById('supportStatus');
+            const originalBtnText = submitBtn.innerHTML;
+            
+            // Disable button and show loading
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+            
+            // Hide previous status
+            statusDiv.classList.remove('show', 'success', 'error');
+            
+            // Get form data
+            const formData = {
+                name: document.getElementById('supportName').value.trim(),
+                email: document.getElementById('supportEmail').value.trim(),
+                subject: document.getElementById('supportSubject').value.trim(),
+                message: document.getElementById('supportMessage').value.trim()
+            };
+            
+            try {
+                const response = await fetch('/api/support/contact', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Success
+                    statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> ' + (result.message || 'Message sent successfully! We\'ll get back to you soon.');
+                    statusDiv.classList.add('show', 'success');
+                    
+                    // Reset form
+                    document.getElementById('supportForm').reset();
+                } else {
+                    // Error from server
+                    throw new Error(result.error || 'Failed to send message');
+                }
+            } catch (error) {
+                console.error('Support form error:', error);
+                statusDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + error.message;
+                statusDiv.classList.add('show', 'error');
+            } finally {
+                // Re-enable button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+            }
+        });
+    </script>
+</body>
+</html>
